@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healthcare AI Assistant</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --primary: #1a6b4a;
+      --primary-light: #e8f5ef;
+      --primary-hover: #145c3e;
+      --user-bubble: #1a6b4a;
+      --bot-bubble: #ffffff;
+      --text: #1a202c;
+      --text-muted: #718096;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --radius: 16px;
+      --tag-high: #d1fae5; --tag-high-text: #065f46;
+      --tag-medium: #fef3c7; --tag-medium-text: #92400e;
+      --tag-low: #fee2e2; --tag-low-text: #991b1b;
+      --tag-none: #f3f4f6; --tag-none-text: #6b7280;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 760px;
+      height: 100dvh;
+      max-height: 860px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .header-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .header-text h1 { font-size: 16px; font-weight: 600; }
+    .header-text p  { font-size: 12px; opacity: 0.8; margin-top: 1px; }
+    .status-dot {
+      width: 8px; height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      margin-left: auto;
+      box-shadow: 0 0 0 2px rgba(74,222,128,0.3);
+    }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Welcome */
+    .welcome {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+    }
+    .welcome-icon { font-size: 48px; margin-bottom: 12px; }
+    .welcome h2 { font-size: 18px; color: var(--text); font-weight: 600; margin-bottom: 6px; }
+    .welcome p  { font-size: 14px; line-height: 1.5; max-width: 360px; margin: 0 auto 20px; }
+    .suggestions { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .suggestion-btn {
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid #c6e8d8;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      max-width: 440px;
+      width: 100%;
+      text-align: left;
+    }
+    .suggestion-btn:hover { background: #d4eedf; border-color: #aad6c0; }
+
+    /* Message rows */
+    .msg-row { display: flex; gap: 10px; align-items: flex-end; }
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .avatar.bot  { background: var(--primary-light); color: var(--primary); }
+    .avatar.user { background: var(--user-bubble); color: white; }
+
+    .bubble-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+    .msg-row.user .bubble-wrap { align-items: flex-end; }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+    .bubble.user {
+      background: var(--user-bubble);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.bot {
+      background: var(--bot-bubble);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow);
+    }
+
+    /* Confidence badge */
+    .meta-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px; font-weight: 500;
+      padding: 2px 8px; border-radius: 10px;
+    }
+    .badge.high   { background: var(--tag-high);   color: var(--tag-high-text); }
+    .badge.medium { background: var(--tag-medium);  color: var(--tag-medium-text); }
+    .badge.low    { background: var(--tag-low);     color: var(--tag-low-text); }
+    .badge.none   { background: var(--tag-none);    color: var(--tag-none-text); }
+    .badge.tool   { background: #ede9fe; color: #5b21b6; }
+
+    /* Sources */
+    .sources-toggle {
+      font-size: 12px; color: var(--primary); cursor: pointer;
+      background: none; border: none; padding: 0;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .sources-toggle:hover { text-decoration: underline; }
+    .sources-list {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .sources-list.open { display: flex; }
+    .source-card {
+      background: var(--primary-light);
+      border: 1px solid #c6e8d8;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+    .source-card strong { color: var(--primary); display: block; margin-bottom: 3px; }
+    .source-card span { color: var(--text-muted); line-height: 1.4; }
+
+    /* Tool output */
+    .tool-card {
+      background: #f5f3ff;
+      border: 1px solid #ddd6fe;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .tool-card .tool-header { color: #5b21b6; font-weight: 600; margin-bottom: 6px; font-size: 12px; }
+    .slot-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .slot-chip {
+      background: white; border: 1px solid #ddd6fe;
+      border-radius: 8px; padding: 3px 10px;
+      font-size: 12px; color: #5b21b6;
+    }
+    .tool-note { color: var(--text-muted); font-size: 11px; margin-top: 6px; }
+
+    /* Typing indicator */
+    .typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+    .typing span {
+      width: 7px; height: 7px; background: var(--text-muted);
+      border-radius: 50%; animation: bounce 1s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* Input */
+    .input-area {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: white;
+      flex-shrink: 0;
+    }
+    textarea {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      max-height: 120px;
+      min-height: 42px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+      color: var(--text);
+    }
+    textarea:focus { border-color: var(--primary); }
+    textarea::placeholder { color: var(--text-muted); }
+
+    .send-btn {
+      width: 42px; height: 42px; flex-shrink: 0;
+      background: var(--primary);
+      border: none; border-radius: 12px;
+      color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .send-btn:hover:not(:disabled) { background: var(--primary-hover); }
+    .send-btn:active:not(:disabled) { transform: scale(0.95); }
+    .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+    .send-btn svg { width: 18px; height: 18px; }
+
+    .timestamp { font-size: 11px; color: var(--text-muted); }
+
+    @media (max-width: 600px) {
+      .app { border-radius: 0; max-height: 100dvh; }
+      .bubble-wrap { max-width: 88%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-icon">🏥</div>
+    <div class="header-text">
+      <h1>Healthcare AI Assistant</h1>
+      <p>Powered by RAG · Phi-2 · ChromaDB</p>
+    </div>
+    <div class="status-dot" id="statusDot" title="Checking…"></div>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">💬</div>
+      <h2>How can I help you today?</h2>
+      <p>Ask me anything about healthcare policies, patient guidelines, appointments, or insurance coverage.</p>
+      <div class="suggestions">
+        <button class="suggestion-btn" onclick="send('Can a patient request a medication refill through telehealth?')">
+          💊 Can a patient request a medication refill through telehealth?
+        </button>
+        <button class="suggestion-btn" onclick="send('What are my rights under HIPAA?')">
+          🔒 What are my rights under HIPAA?
+        </button>
+        <button class="suggestion-btn" onclick="send('Can I book a cardiology appointment for Monday?')">
+          📅 Can I book a cardiology appointment for Monday?
+        </button>
+        <button class="suggestion-btn" onclick="send('What should I do if my wound looks infected after discharge?')">
+          🩺 What should I do if my wound looks infected after discharge?
+        </button>
+        <button class="suggestion-btn" onclick="send('What is a co-pay and how much will mine be?')">
+          💳 What is a co-pay and how much will mine be?
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <textarea
+      id="input"
+      placeholder="Ask a healthcare question…"
+      rows="1"
+      onkeydown="handleKey(event)"
+      oninput="autoResize(this)"
+    ></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendFromInput()" title="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  const API_BASE = window.location.origin;
+  let isLoading = false;
+
+  // Check API health on load
+  async function checkHealth() {
+    const dot = document.getElementById('statusDot');
+    try {
+      const r = await fetch(`${API_BASE}/health`);
+      if (r.ok) {
+        dot.style.background = '#4ade80';
+        dot.title = 'API online';
+      } else {
+        dot.style.background = '#f87171';
+        dot.title = 'API error';
+      }
+    } catch {
+      dot.style.background = '#f87171';
+      dot.title = 'API offline';
+    }
+  }
+  checkHealth();
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendFromInput();
+    }
+  }
+
+  function sendFromInput() {
+    const input = document.getElementById('input');
+    const q = input.value.trim();
+    if (!q || isLoading) return;
+    input.value = '';
+    input.style.height = 'auto';
+    send(q);
+  }
+
+  function send(question) {
+    if (isLoading) return;
+    document.getElementById('welcome')?.remove();
+    appendUserMsg(question);
+    const typingId = appendTyping();
+    setLoading(true);
+
+    fetch(`${API_BASE}/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    })
+      .then(r => {
+        if (!r.ok) return r.json().then(e => { throw new Error(e.detail || 'Server error') });
+        return r.json();
+      })
+      .then(data => {
+        removeTyping(typingId);
+        appendBotMsg(data);
+      })
+      .catch(err => {
+        removeTyping(typingId);
+        appendError(err.message);
+      })
+      .finally(() => setLoading(false));
+  }
+
+  function setLoading(v) {
+    isLoading = v;
+    document.getElementById('sendBtn').disabled = v;
+  }
+
+  function scrollBottom() {
+    const msgs = document.getElementById('messages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function now() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function appendUserMsg(text) {
+    const msgs = document.getElementById('messages');
+    msgs.insertAdjacentHTML('beforeend', `
+      <div class="msg-row user">
+        <div class="avatar user">U</div>
+        <div class="bubble-wrap">
+          <div class="bubble user">${escHtml(text)}</div>
+          <span class="timestamp">${now()}</span>
+        </div>
+      </div>
+    `);
+    scrollBottom();
+  }
+
+  function appendTyping() {
+    const id = 'typing-' + Date.now();
+    const msgs = document.getElementById('messages');
+    msgs.insertAdjacentHTML('beforeend', `
+      <div class="msg-row" id="${id}">
+        <div class="avatar bot">🏥</div>
+        <div class="bubble bot">
+          <div class="typing"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    `);
+    scrollBottom();
+    return id;
+  }
+
+  function removeTyping(id) {
+    document.getElementById(id)?.remove();
+  }
+
+  function appendBotMsg(data) {
+    const msgs = document.getElementById('messages');
+    const conf = data.confidence || 'none';
+    const isFallback = conf === 'none';
+    const hasSources = data.sources && data.sources.length > 0;
+    const hasTool = data.tool_used && data.tool_output;
+
+    let metaHtml = `<div class="meta-row">`;
+    if (!isFallback) {
+      metaHtml += `<span class="badge ${conf}">${conf} confidence</span>`;
+    }
+    if (hasTool) {
+      metaHtml += `<span class="badge tool">🔧 ${data.tool_used}</span>`;
+    }
+    if (hasSources) {
+      const sid = 'src-' + Date.now();
+      metaHtml += `<button class="sources-toggle" onclick="toggleSources('${sid}')">📄 ${data.sources.length} source${data.sources.length > 1 ? 's' : ''} ▾</button>`;
+    }
+    metaHtml += `<span class="timestamp">${now()}</span></div>`;
+
+    let sourcesHtml = '';
+    if (hasSources) {
+      const sid = 'src-' + Date.now();
+      sourcesHtml = `<div class="sources-list" id="${sid}">` +
+        data.sources.map(s => `
+          <div class="source-card">
+            <strong>📄 ${escHtml(s.document)}</strong>
+            <span>${escHtml(s.chunk)}</span>
+          </div>`).join('') +
+        `</div>`;
+      // patch the button to use this actual id
+      metaHtml = metaHtml.replace(/src-\d+/, sid);
+    }
+
+    let toolHtml = '';
+    if (hasTool && data.tool_output) {
+      const t = data.tool_output;
+      const slots = (t.available_slots || []).map(s => `<span class="slot-chip">🕐 ${escHtml(s)}</span>`).join('');
+      toolHtml = `
+        <div class="tool-card">
+          <div class="tool-header">🔧 Tool: check_available_slots</div>
+          <div><strong>${escHtml(t.department)}</strong> — ${escHtml(t.requested_date)}</div>
+          <div class="slot-list" style="margin-top:6px">${slots}</div>
+          ${t.note ? `<div class="tool-note">ℹ️ ${escHtml(t.note)}</div>` : ''}
+        </div>`;
+    }
+
+    msgs.insertAdjacentHTML('beforeend', `
+      <div class="msg-row">
+        <div class="avatar bot">🏥</div>
+        <div class="bubble-wrap">
+          <div class="bubble bot">${escHtml(data.answer)}</div>
+          ${toolHtml}
+          ${metaHtml}
+          ${sourcesHtml}
+        </div>
+      </div>
+    `);
+    scrollBottom();
+  }
+
+  function appendError(msg) {
+    const msgs = document.getElementById('messages');
+    msgs.insertAdjacentHTML('beforeend', `
+      <div class="msg-row">
+        <div class="avatar bot">🏥</div>
+        <div class="bubble-wrap">
+          <div class="bubble bot" style="border-color:#fca5a5;background:#fff5f5;color:#dc2626">
+            ⚠️ ${escHtml(msg)}
+          </div>
+        </div>
+      </div>
+    `);
+    scrollBottom();
+  }
+
+  function toggleSources(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('open');
+    const btn = document.querySelector(`[onclick="toggleSources('${id}')"]`);
+    if (btn) btn.innerHTML = el.classList.contains('open')
+      ? `📄 ${el.children.length} source${el.children.length > 1 ? 's' : ''} ▴`
+      : `📄 ${el.children.length} source${el.children.length > 1 ? 's' : ''} ▾`;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
