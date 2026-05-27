@@ -12,6 +12,8 @@ A RAG-based AI assistant that answers healthcare questions from a curated docume
 
 > The Render free tier spins down after inactivity — first request may take ~30 seconds to wake up.
 
+![Demo](Demo.gif)
+
 ## Architecture
 
 ```
