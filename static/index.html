@@ -321,7 +321,11 @@
 </div>
 
 <script>
-  const API_BASE = window.location.origin;
+  // paste your Render backend URL here when deploying frontend separately on Netlify
+  // e.g. "https://healthcare-ai-assistant.onrender.com"
+  // leave empty for local dev — it'll use the same origin automatically
+  const BACKEND_URL = "https://healthcare-ai-assistant-using-rag-llms.onrender.com";
+  const API_BASE = BACKEND_URL || window.location.origin;
   let isLoading = false;
 
   // Check API health on load
@@ -377,7 +381,11 @@
       body: JSON.stringify({ question }),
     })
       .then(r => {
-        if (!r.ok) return r.json().then(e => { throw new Error(e.detail || 'Server error') });
+        if (!r.ok) return r.text().then(text => {
+          // try to parse as JSON first, fall back to a plain message if it's HTML
+          try { const e = JSON.parse(text); throw new Error(e.detail || 'Server error'); }
+          catch { throw new Error(`Server error (${r.status}) — backend may be starting up, try again in a moment`); }
+        });
         return r.json();
       })
       .then(data => {

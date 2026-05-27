@@ -2,6 +2,16 @@
 
 A RAG-based AI assistant that answers healthcare questions from a curated document knowledge base, with an agentic appointment-routing workflow and query rewriting — built for the Mindbowser AI Engineer hackathon.
 
+## Live Demo
+
+| | URL |
+|---|---|
+| Frontend (Netlify) | https://docterai.netlify.app |
+| Backend API (Render) | https://healthcare-ai-assistant-using-rag-llms.onrender.com |
+| API Docs (Swagger) | https://healthcare-ai-assistant-using-rag-llms.onrender.com/docs |
+
+> The Render free tier spins down after inactivity — first request may take ~30 seconds to wake up.
+
 ---
 
 ## Architecture
