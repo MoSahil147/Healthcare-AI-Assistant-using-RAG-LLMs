@@ -1,0 +1,88 @@
+APPOINTMENT SCHEDULING POLICY
+Effective Date: January 1, 2026
+Department: Patient Access & Scheduling
+Regulatory Basis: Clinical Establishments Act, 2010 | Consumer Protection Act, 2019
+
+OVERVIEW
+This policy governs the scheduling, rescheduling, and cancellation of outpatient (OPD),
+specialist, and telemedicine appointments at this healthcare facility, in compliance with the
+Clinical Establishments (Registration and Regulation) Act, 2010. The facility is registered
+with the respective State Clinical Establishments Authority and is NABH accredited.
+
+HOW TO BOOK AN APPOINTMENT
+Patients may book appointments through the following channels:
+1. Patient Portal (Recommended): Log in at myhealth.healthsystem.in, select "Book Appointment,"
+   choose your department, doctor, and preferred slot. Confirmation is sent via SMS and email.
+2. Helpline: Call 1800-123-4567 (Toll Free), available Monday–Saturday, 8am–8pm.
+3. ABDM / ABHA Integration: Patients with an Ayushman Bharat Health Account (ABHA ID) may
+   book appointments through the Ayushman Bharat Digital Mission (ABDM) Health app or
+   partner platforms (e.g., UMANG app).
+4. In-Person: Visit the OPD Registration Desk, Ground Floor, Main Building.
+5. Telemedicine: Telemedicine slots can be booked via the patient portal or helpline. A
+   secure video link is shared 30 minutes before the appointment.
+
+AVAILABLE DEPARTMENTS AND SPECIALTIES
+The facility offers consultations in the following departments:
+- General Medicine & Internal Medicine
+- General Surgery & Laparoscopic Surgery
+- Cardiology & Cardiac Surgery
+- Orthopaedics & Joint Replacement
+- Gynaecology & Obstetrics (OB/GYN)
+- Paediatrics & Neonatology
+- Dermatology & Cosmetology
+- Neurology & Neurosurgery
+- Psychiatry & Mental Health (governed by Mental Healthcare Act, 2017)
+- Oncology & Haematology
+- Endocrinology & Diabetology
+- Gastroenterology & Hepatology
+- Nephrology & Urology
+- Physiotherapy & Rehabilitation
+- Dietetics & Nutrition
+
+APPOINTMENT TYPES
+- New Patient OPD: First consultation at this facility. Bring all previous medical records,
+  prescriptions, and investigation reports. Duration: 30–45 minutes.
+- Follow-up OPD: Review visits for ongoing treatment. Duration: 15–20 minutes.
+- Specialist Referral: Requires a referral letter from a General Physician or General
+  Practitioner. Some insurance plans and PMJAY require a GP referral for specialist visits.
+- Day Care Procedure Slot: For procedures that do not require overnight admission (e.g.,
+  endoscopy, cataract surgery, chemotherapy session). Requires prior booking and pre-procedure
+  clearance.
+- Emergency OPD: Available 24x7 for urgent but non-life-threatening conditions. Walk-in basis.
+  For life-threatening emergencies, call 112.
+
+ESTIMATED WAITING TIMES (NEW PATIENT APPOINTMENTS)
+- General Medicine: 1–3 working days
+- Cardiology: 5–7 working days
+- Orthopaedics: 4–7 working days
+- Dermatology: 7–14 working days
+- Psychiatry/Mental Health: 3–5 working days (urgent slots available)
+- Oncology: 3–5 working days (expedited on medical urgency)
+- All other specialties: 5–10 working days
+
+For urgent medical conditions that cannot wait, please use the Emergency OPD or call the
+facility helpline for priority booking.
+
+CANCELLATION AND RESCHEDULING POLICY
+- Appointments must be cancelled at least 24 hours in advance to avoid a cancellation fee
+  of ₹200 (waived for documented medical emergencies).
+- Cancellations can be made via the patient portal, helpline, or in person.
+- Repeated no-shows (3 or more in 12 months) may result in a requirement for advance payment
+  at the time of booking.
+- Rescheduling is free of charge and can be done any time before the appointment.
+
+AYUSHMAN BHARAT (PMJAY) AND GOVERNMENT SCHEME PATIENTS
+- Patients covered under Pradhan Mantri Jan Arogya Yojana (PMJAY/Ayushman Bharat) must
+  present their e-card or Ayushman card at registration.
+- PMJAY benefits are available for empanelled procedures only. Please confirm with the
+  insurance desk before scheduling a procedure.
+- Beneficiaries of state government schemes (e.g., Mahatma Jyotiba Phule Jan Arogya Yojana
+  in Maharashtra) should present the relevant scheme card at registration.
+
+PATIENT RIGHTS UNDER THE CONSUMER PROTECTION ACT, 2019
+Patients have the right to receive timely, transparent appointment services. Complaints
+regarding scheduling deficiencies may be filed with the Patient Relations Officer or escalated
+to the District Consumer Disputes Redressal Commission.
+
+Scheduling Helpline: 1800-123-4567 | Mon–Sat 8am–8pm
+Patient Portal: myhealth.healthsystem.in | Emergency OPD: 24x7

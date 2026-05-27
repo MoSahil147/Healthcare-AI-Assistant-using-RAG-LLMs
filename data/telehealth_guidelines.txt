@@ -1,0 +1,75 @@
+TELEMEDICINE CONSULTATION GUIDELINES
+Effective Date: January 1, 2026
+Department: Patient Services & Digital Health
+Regulatory Basis: Telemedicine Practice Guidelines, 2020 (MoHFW & NMC)
+
+OVERVIEW
+These guidelines govern the delivery of telemedicine services at this healthcare facility in
+accordance with the Telemedicine Practice Guidelines issued jointly by the Ministry of Health
+and Family Welfare (MoHFW) and the National Medical Commission (NMC) on March 25, 2020.
+Telemedicine enables registered medical practitioners (RMPs) to provide medical advice,
+diagnosis support, and prescriptions through audio, video, or text-based digital platforms.
+
+ELIGIBILITY FOR TELEMEDICINE CONSULTATIONS
+Telemedicine consultations are available to:
+- Established patients with at least one prior in-person visit on record with this facility.
+- Patients in remote or rural areas who cannot access in-person care conveniently.
+- Patients requiring follow-up consultations for chronic conditions such as diabetes,
+  hypertension, thyroid disorders, or asthma.
+- Patients seeking mental health consultations (subject to Mental Healthcare Act, 2017).
+
+New patients may access telemedicine only for first-aid advice, follow-up of a referral, or
+in cases where in-person visit is not immediately possible. A detailed in-person visit must
+follow at the earliest opportunity.
+
+REGISTERED MEDICAL PRACTITIONER REQUIREMENTS
+As per NMC Telemedicine Guidelines 2020, only a registered medical practitioner (RMP) holding
+a valid registration with the National Medical Commission or State Medical Council is authorised
+to conduct telemedicine consultations and issue prescriptions. The RMP must:
+- Verify patient identity at the start of every telemedicine session.
+- Maintain a proper record of every telemedicine interaction.
+- Provide their name, registration number, and contact details to the patient.
+
+PRESCRIPTION RULES UNDER TELEMEDICINE
+Prescriptions issued via telemedicine must comply with the following:
+- The RMP may prescribe medications from List O (over-the-counter) and List A (specified
+  medicines) through telemedicine, subject to clinical appropriateness.
+- List B medicines (including Schedule H and H1 drugs under the Drugs and Cosmetics Act, 1940)
+  may only be prescribed via telemedicine for follow-up patients where the condition is already
+  diagnosed and stable.
+- Narcotic and psychotropic substances listed under the NDPS Act, 1985 (e.g., morphine,
+  tramadol, benzodiazepines) CANNOT be prescribed via telemedicine under any circumstances.
+- Prescriptions must be issued on a signed letterhead or via the facility's digital prescription
+  system and transmitted to the patient securely.
+
+PERMITTED TELEMEDICINE SERVICES
+The following may be provided via telemedicine:
+- Follow-up consultations for chronic disease management
+- Mental health therapy and psychiatry (non-NDPS medication management)
+- Dermatology consultations via photo/video review
+- Nutritional and dietary counselling
+- Post-surgical follow-up where physical wound inspection is not required
+- Review and renewal of existing prescriptions (non-NDPS)
+
+TECHNOLOGY AND PRIVACY REQUIREMENTS
+- All telemedicine sessions must be conducted on secure, encrypted platforms.
+- Patient data collected during telemedicine must be stored and processed in compliance with
+  the Digital Personal Data Protection Act, 2023 (DPDPA) and the IT Act, 2000.
+- WhatsApp and similar consumer messaging apps may be used only for text/image consultations;
+  they are not permitted for video consultations involving clinical assessment.
+- Audio or video recording of consultations without explicit patient consent is prohibited.
+
+LIMITATIONS AND EXCLUSIONS
+Telemedicine is NOT appropriate for:
+- Medical emergencies — patients must call 112 or visit the nearest emergency facility.
+- Conditions requiring physical examination, diagnostic investigation, or surgical assessment.
+- First-time prescription of Schedule X drugs or NDPS-listed substances.
+- Termination of pregnancy guidance (subject to MTP Act, 2021).
+
+PATIENT GRIEVANCE REDRESSAL
+Complaints regarding telemedicine services may be filed with:
+- The facility's Patient Relations Officer at patientcare@healthsystem.in
+- The National Medical Commission at www.nmc.org.in
+- The Consumer Disputes Redressal Commission under the Consumer Protection Act, 2019.
+
+Contact: telemedicine@healthsystem.in | 1800-123-4567 (Toll Free)

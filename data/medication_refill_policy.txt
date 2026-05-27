@@ -1,0 +1,72 @@
+MEDICATION REFILL POLICY
+Effective Date: January 1, 2026
+Department: Pharmacy Services & Clinical Operations
+Regulatory Basis: Drugs and Cosmetics Act, 1940 | NDPS Act, 1985 | CDSCO Guidelines
+
+OVERVIEW
+This policy governs the process for requesting and approving medication refills at this
+healthcare facility in accordance with the Drugs and Cosmetics Act, 1940, the Narcotic Drugs
+and Psychotropic Substances (NDPS) Act, 1985, and guidelines issued by the Central Drugs
+Standard Control Organisation (CDSCO). The policy ensures patient safety, regulatory
+compliance, and continuity of care.
+
+HOW TO REQUEST A MEDICATION REFILL
+Patients may request refills through the following channels:
+1. Patient Portal: Log in at myhealth.healthsystem.in and navigate to "Medications" →
+   "Request Refill." Processing time: 2–3 working days.
+2. Pharmacy Counter: Visit the in-facility pharmacy with your previous prescription.
+3. Telemedicine Consultation: Request renewal during a scheduled telemedicine or in-person
+   appointment with a Registered Medical Practitioner (RMP).
+4. Helpline: Call 1800-123-4567 (Toll Free) Monday–Saturday, 9am–6pm.
+
+STANDARD REFILL CRITERIA
+A medication refill will be approved when:
+- The patient has a valid, current prescription from a registered medical practitioner.
+- The prescribed medication is not a Schedule X or NDPS-listed substance.
+- The patient is not overdue for a mandatory clinical review or lab investigation.
+- The quantity requested does not exceed the originally authorised supply.
+
+SCHEDULE H AND SCHEDULE H1 DRUG REFILLS
+Under the Drugs and Cosmetics Act, 1940, Schedule H and H1 drugs require a valid prescription
+for every dispensing:
+- Schedule H drugs (e.g., antibiotics, antihypertensives): Refill requires a valid prescription.
+  Repeat prescriptions may be issued by the treating RMP after clinical review.
+- Schedule H1 drugs (e.g., third-generation cephalosporins, carbapenems): Require a fresh
+  prescription for every refill. These cannot be refilled on the basis of an older prescription.
+- Over-the-counter (OTC) medications not listed in Schedule H may be dispensed without
+  prescription but only in standard therapeutic quantities.
+
+NDPS ACT MEDICATIONS — SPECIAL RESTRICTIONS
+Medications listed under the Narcotic Drugs and Psychotropic Substances (NDPS) Act, 1985
+(e.g., morphine, oxycodone, tramadol, alprazolam, diazepam) are subject to strict controls:
+- NDPS medications require a special NDPS prescription form as mandated by the relevant
+  State Excise/Drugs Control Authority.
+- Refills require an in-person consultation with the prescribing doctor. Telemedicine
+  prescriptions for NDPS substances are not permitted under any circumstances.
+- Lost or misplaced NDPS prescriptions cannot be replaced without a fresh clinical evaluation.
+- Early refill requests for NDPS medications will be denied unless accompanied by a written
+  clinical justification from the treating RMP.
+
+PHARMACY COORDINATION AND GENERIC SUBSTITUTION
+- This facility coordinates with empanelled pharmacy partners for home delivery of approved
+  medications under Jan Aushadhi Scheme where applicable.
+- Generic substitution is permitted in accordance with the NMC's guidelines on generic
+  prescriptions, unless the prescribing doctor has documented a specific clinical reason for
+  brand prescription.
+- Patients are encouraged to use Jan Aushadhi Kendras for significant cost savings on generics.
+
+SITUATIONS REQUIRING A FRESH CLINICAL APPOINTMENT
+Refill will not be processed without a fresh consultation in the following cases:
+- The patient has not visited the prescribing doctor in more than 6 months (chronic conditions)
+  or 3 months (psychiatric medications).
+- Recent lab investigations are required to ensure safety (e.g., HbA1c for metformin,
+  LFT for statins, renal function for ACE inhibitors).
+- The patient reports adverse drug reactions or new symptoms.
+- A dosage change or new medication is required.
+
+MEDICATION DISPOSAL
+Unused or expired medications should be deposited at designated drug take-back counters
+available at the facility pharmacy. Do not discard medications in household waste or flush
+them, as this violates the Bio-Medical Waste Management Rules, 2016.
+
+Contact: pharmacy@healthsystem.in | 1800-123-4567 | Mon–Sat 9am–6pm

@@ -1,0 +1,103 @@
+INSURANCE & HEALTH SCHEME ELIGIBILITY FAQ
+Effective Date: January 1, 2026
+Department: Patient Financial Services & Billing
+Regulatory Basis: IRDAI Regulations | PMJAY Guidelines | ABDM Framework
+
+OVERVIEW
+This document answers frequently asked questions about health insurance, government health
+schemes, cashless claims, and billing at this facility. The facility is empanelled under
+Pradhan Mantri Jan Arogya Yojana (PMJAY/Ayushman Bharat) and is registered with major
+Insurance Regulatory and Development Authority of India (IRDAI)-regulated insurers.
+
+Q: WHAT HEALTH INSURANCE PLANS AND GOVERNMENT SCHEMES DOES THIS FACILITY ACCEPT?
+A: This facility accepts:
+- Pradhan Mantri Jan Arogya Yojana (PMJAY / Ayushman Bharat): Up to ₹5 lakh per family per year.
+- State government health schemes: Mahatma Jyotiba Phule Jan Arogya Yojana (Maharashtra),
+  Chief Minister's Comprehensive Health Insurance Scheme, and other state-specific schemes.
+- Central Government Health Scheme (CGHS): For central government employees and pensioners.
+- ECHS (Ex-Servicemen Contributory Health Scheme): For armed forces veterans.
+- All major private insurers: Star Health, New India Assurance, HDFC ERGO, Care Health,
+  Niva Bupa (formerly Max Bupa), ICICI Lombard, and others.
+- Corporate group health policies via TPA (Third-Party Administrators) such as Medi Assist,
+  Paramount, Health India, and Vipul Medcorp.
+Please contact the Insurance Desk at 1800-123-5678 to confirm your specific plan.
+
+Q: HOW DO I VERIFY MY ELIGIBILITY BEFORE ADMISSION OR CONSULTATION?
+A: Eligibility can be verified through:
+- Patient Portal: Log in at myhealth.healthsystem.in → "Insurance & Billing" → "Check Eligibility."
+- Insurance Desk: Visit the Insurance Desk (Ground Floor, near Registration) with your policy
+  document, health card, and a valid photo ID (Aadhaar, PAN, Voter ID, or Passport).
+- Helpline: Call 1800-123-5678 (Mon–Sat 8am–6pm).
+- ABHA ID: Patients linked to the Ayushman Bharat Digital Mission can check coverage through
+  the ABDM Health app using their ABHA (Health ID) number.
+We recommend verifying eligibility at least 48 hours before a planned procedure.
+
+Q: HOW DOES CASHLESS HOSPITALISATION WORK?
+A: For cashless treatment:
+1. Inform the Insurance Desk at the time of admission (or 48 hours before for planned procedures).
+2. The desk submits a pre-authorisation request to your insurer or TPA.
+3. The insurer/TPA approves or queries the request within 2–4 hours (pre-planned) or
+   1–2 hours (emergency under IRDAI's cashless discharge guidelines).
+4. Upon approval, you are not required to pay the approved amount upfront. You pay only
+   deductibles, co-payments, or non-payable items as specified in your policy.
+As per IRDAI's Cashless Authorisation Master Circular (2024), insurers must process
+pre-authorisation for planned hospitalisations within 1 hour of receiving complete documents.
+
+Q: WHAT IS A CO-PAYMENT AND DOES MY POLICY HAVE ONE?
+A: A co-payment (co-pay) is the fixed percentage of the claim amount that you pay from your
+own pocket, as defined in your policy:
+- Senior citizen health plans often have a mandatory co-pay of 10–20%.
+- Zone-upgrade co-pay applies if you choose a room category higher than your policy entitlement.
+- Some corporate policies have a co-pay for specific conditions or treatments.
+Check your policy's Schedule of Benefits or call your insurer to confirm your co-pay obligations.
+This facility will inform you of any applicable co-pay at the time of admission.
+
+Q: WHAT IS PRE-AUTHORISATION AND WHEN IS IT REQUIRED?
+A: Pre-authorisation (also called prior approval or PA) is mandatory for:
+- All planned surgical procedures and day-care treatments
+- Chemotherapy, dialysis, and radiation therapy sessions
+- High-value investigations (MRI, CT, PET scan) when covered under hospitalisation
+- ICU admissions and organ transplants
+The facility's Insurance Desk initiates the PA process on your behalf. Processing typically
+takes 2–6 hours. IRDAI mandates that insurers cannot refuse cashless authorisation without
+adequate grounds.
+
+Q: WHAT ITEMS ARE NOT COVERED UNDER STANDARD HEALTH INSURANCE?
+A: Standard exclusions under most IRDAI-regulated policies include:
+- OPD (outpatient) consultations, unless the policy has an OPD rider
+- Cosmetic or aesthetic procedures not medically necessary
+- Dental treatment (unless due to accidental injury)
+- Spectacles, hearing aids, and contact lenses
+- Maternity expenses (unless maternity rider is included, with waiting period)
+- Pre-existing diseases during the initial waiting period (typically 2–4 years)
+- Self-inflicted injuries
+Refer to your specific policy wording for a complete exclusions list.
+
+Q: HOW DOES PMJAY (AYUSHMAN BHARAT) WORK AT THIS FACILITY?
+A: PMJAY provides health coverage of up to ₹5 lakh per family per year for secondary and
+tertiary hospitalisation. To avail benefits:
+- Present your Ayushman Card (PM-JAY e-card) or verify eligibility via ABHA ID at the desk.
+- Benefits are cashless and paperless — the facility bills the government directly.
+- PMJAY covers over 1,929 procedures (HBP packages) including surgeries, dialysis, and
+  cancer treatment. OPD visits are not covered under standard PMJAY.
+- Beneficiaries can check eligibility at pmjay.gov.in or on the UMANG app.
+
+Q: WHAT IF I CANNOT AFFORD MY HOSPITAL BILL?
+A: No patient is turned away due to inability to pay for emergency care, as mandated by the
+Clinical Establishments Act, 2010 and Supreme Court directives on emergency treatment.
+Financial assistance options available:
+- Facility-operated patient welfare fund for BPL (Below Poverty Line) patients
+- Instalment-based payment plans (0% interest for up to 6 months)
+- Assistance with PMJAY enrolment for eligible patients
+Contact the Financial Counsellor at financial.counsellor@healthsystem.in or visit Room 102.
+
+Q: HOW DO I RAISE A BILLING DISPUTE?
+A: Billing disputes must be raised within 30 days of receiving the final bill by contacting
+Patient Financial Services at billing@healthsystem.in or calling 1800-123-5678. If unresolved,
+patients may escalate to the IRDAI Grievance Cell (igms.irda.gov.in) or the Consumer Disputes
+Redressal Commission under the Consumer Protection Act, 2019.
+
+CONTACT
+Insurance Desk: 1800-123-5678 | Mon–Sat 8am–6pm
+Financial Counsellor: financial.counsellor@healthsystem.in
+Billing disputes: billing@healthsystem.in
