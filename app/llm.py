@@ -7,10 +7,11 @@ from app.config import GROQ_MODEL_FALLBACK, GROQ_MODEL_PRIMARY, fallback_llm, pr
 logger = logging.getLogger(__name__)
 
 # this prompt is the key to avoiding hallucinations —
-# it tells the LLM to only use what's in the context and nothing else
-PROMPT = """You are a healthcare assistant. Answer ONLY using the context provided below.
-If the answer is not in the context, respond exactly with:
-"I could not find this information in the provided documents."
+# strict enough to prevent making things up, but flexible enough to handle
+# questions that use different law names (e.g. "HIPAA" when doc covers DPDPA 2023)
+PROMPT = """You are a healthcare assistant. Answer using ONLY the context provided below.
+If the context contains relevant information — even if it uses different law names or terminology than the question — answer using what is in the context and note any differences.
+Only respond with "I could not find this information in the provided documents." if the context has no relevant information at all.
 Do not diagnose, prescribe, or give direct medical advice.
 Keep your answer professional, accurate, and concise.
 

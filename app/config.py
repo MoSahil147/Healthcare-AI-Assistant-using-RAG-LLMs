@@ -11,9 +11,9 @@ GROQ_MODEL_PRIMARY  = "llama-3.3-70b-versatile"
 GROQ_MODEL_FALLBACK = "llama-3.1-8b-instant"   # used when primary hits rate limit
 CHROMA_PATH        = "./store/chroma"
 COLLECTION_NAME    = "healthcare_docs"
-CHUNK_SIZE         = 500    # characters per chunk
-CHUNK_OVERLAP      = 50     # overlap so nothing gets cut off at the seam
-TOP_K              = 3      # how many chunks to fetch per question
+CHUNK_SIZE         = 800    # characters per chunk — bigger = more context per result
+CHUNK_OVERLAP      = 100    # overlap so section headers don't get cut off
+TOP_K              = 4      # fetch 4 chunks — more coverage without getting too noisy
 DATA_DIR           = "./data"
 DISTANCE_THRESHOLD = 0.8    # above this the chunk is too far away to be useful
 
