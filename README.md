@@ -1,6 +1,6 @@
 # Healthcare AI Assistant
 
-A RAG-based AI assistant that answers healthcare questions from a curated document knowledge base, with an agentic appointment-routing workflow and query rewriting — built for the Mindbowser AI Engineer hackathon.
+A RAG-based AI assistant that answers healthcare questions from a curated document knowledge base, with an agentic appointment-routing workflow and query rewriting  built for the Mindbowser AI Engineer hackathon.
 
 ## Live Demo
 
@@ -11,8 +11,6 @@ A RAG-based AI assistant that answers healthcare questions from a curated docume
 | API Docs (Swagger) | https://healthcare-ai-assistant-using-rag-llms.onrender.com/docs |
 
 > The Render free tier spins down after inactivity — first request may take ~30 seconds to wake up.
-
----
 
 ## Architecture
 
@@ -39,8 +37,6 @@ User Question
                                   ├─ Call Groq LLM (llama-3.3-70b-versatile)
                                   └─ Answer + Source Citations + Confidence
 ```
-
----
 
 ## Project Structure
 
@@ -69,8 +65,6 @@ Healthcare-AI-Assistant-using-RAG-LLMs/
 └── docker-compose.yml
 ```
 
----
-
 ## Tech Stack
 
 | Component        | Choice                                    | Why                                                              |
@@ -82,8 +76,6 @@ Healthcare-AI-Assistant-using-RAG-LLMs/
 | RAG Framework   | LangChain                                 | Clean abstractions for loading, chunking, and retrieval          |
 | API Framework   | FastAPI                                   | Fast, typed, auto-docs at `/docs`                                |
 | Package Manager | uv                                        | 10-100x faster than pip                                          |
-
----
 
 ## Dataset
 
@@ -100,8 +92,6 @@ The knowledge base consists of **6 synthetic healthcare documents** written for 
 
 **No real patient data or PHI is used.** All documents are original synthetic content.
 
----
-
 ## Prerequisites
 
 Create a `.env` file (see `.env.example`):
@@ -114,8 +104,6 @@ GROQ_API_KEY=your_groq_api_key_here
 Get your free tokens:
 - HuggingFace token: https://huggingface.co/settings/tokens
 - Groq API key: https://console.groq.com
-
----
 
 ## Local Setup
 
@@ -135,8 +123,6 @@ uv run uvicorn app.main:app --reload --port 8000
 Open `http://localhost:8000` to use the chat UI.
 API docs available at `http://localhost:8000/docs`.
 
----
-
 ## Docker Setup
 
 ```bash
@@ -145,8 +131,6 @@ docker compose up
 ```
 
 Documents are auto-ingested on container start. API available at `http://localhost:8000`.
-
----
 
 ## API Endpoints
 
@@ -196,8 +180,6 @@ Sample response:
 }
 ```
 
----
-
 ## Prompt Template
 
 ```
@@ -215,8 +197,6 @@ Question: {question}
 Answer:
 ```
 
----
-
 ## Sample Questions & Responses
 
 | Question | Expected Behaviour |
@@ -229,8 +209,6 @@ Answer:
 | Can I book a cardiology appointment for Monday? | Agent → mock slot availability (tool call) |
 | What is the capital of France? | Fallback → "I could not find this information in the provided documents." |
 | What are the rules for NDPS Act prescriptions? | RAG → controlled substance rules from `medication_refill_policy.txt` |
-
----
 
 ## Agent Workflow
 
@@ -255,15 +233,11 @@ Does the question contain appointment keywords?
 The router uses keyword matching — no LLM call needed for routing decisions, keeping latency low.
 Query rewriting uses the LLM to turn "what about that?" into a clear standalone question before searching.
 
----
-
 ## Running Tests
 
 ```bash
 uv run pytest tests/ -v
 ```
-
----
 
 ## Limitations & Future Improvements
 
@@ -281,8 +255,6 @@ uv run pytest tests/ -v
 - Connect to a real appointment scheduling system via calendar API.
 - Add JWT/OAuth2 authentication with role-based access.
 - Per-session conversation history using Redis or session tokens.
-
----
 
 ## Healthcare Data Privacy Note
 
