@@ -1,11 +1,11 @@
 import logging
 from datetime import date, timedelta
 
-from app.rag import answer_question, conversation_history
+from app.rag import answer_question
 
 logger = logging.getLogger(__name__)
 
-# if any of these words show up in the question, skip RAG and go to the appointment tool
+# if any of these words appear in the question, skip RAG and go to the appointment tool
 APPOINTMENT_KEYWORDS = {
     "appointment", "book", "slot", "schedule", "available", "availability",
     "cardiology", "orthopaedics", "orthopedics", "dermatology", "neurology",
@@ -14,25 +14,32 @@ APPOINTMENT_KEYWORDS = {
     "gastroenterology", "physiotherapy", "physical therapy", "nephrology", "urology",
 }
 
-# mock slots per department — in a real system this would call a scheduling API
-MOCK_SLOTS = {
+# one slot list per department, no duplicated entries
+# in a real system this would call a scheduling API
+_CANONICAL_SLOTS: dict[str, list[str]] = {
     "cardiology":       ["Monday 9:00 AM", "Monday 2:30 PM", "Wednesday 11:00 AM"],
     "orthopaedics":     ["Tuesday 10:00 AM", "Thursday 3:00 PM", "Friday 9:30 AM"],
-    "orthopedics":      ["Tuesday 10:00 AM", "Thursday 3:00 PM", "Friday 9:30 AM"],
     "dermatology":      ["Wednesday 9:00 AM", "Friday 1:00 PM"],
     "neurology":        ["Monday 11:00 AM", "Thursday 9:00 AM"],
     "general medicine": ["Monday 8:00 AM", "Tuesday 2:00 PM", "Wednesday 4:00 PM", "Friday 10:00 AM"],
     "mental health":    ["Monday 10:00 AM", "Tuesday 3:00 PM", "Thursday 11:00 AM"],
-    "psychiatry":       ["Monday 10:00 AM", "Tuesday 3:00 PM", "Thursday 11:00 AM"],
     "paediatrics":      ["Monday 9:30 AM", "Wednesday 2:00 PM"],
     "gynaecology":      ["Tuesday 11:00 AM", "Thursday 2:00 PM"],
     "oncology":         ["Wednesday 10:00 AM", "Friday 9:00 AM"],
     "default":          ["Monday 10:00 AM", "Wednesday 2:00 PM", "Friday 11:00 AM"],
 }
 
+# alternate spellings that resolve to the canonical department name above
+_ALIASES: dict[str, str] = {
+    "orthopedics": "orthopaedics",
+    "psychiatry":  "mental health",
+    "pediatrics":  "paediatrics",
+    "gynecology":  "gynaecology",
+}
 
-def check_available_slots(department, requested_date):
-    slots = MOCK_SLOTS.get(department, MOCK_SLOTS["default"])
+
+def check_available_slots(department: str, requested_date: str) -> dict:
+    slots = _CANONICAL_SLOTS.get(department, _CANONICAL_SLOTS["default"])
     dept_label = department.title() if department != "default" else "General"
     return {
         "department":      dept_label,
@@ -42,19 +49,24 @@ def check_available_slots(department, requested_date):
     }
 
 
-def _get_department(question):
-    # walk through known departments and return the first one mentioned
+def _get_department(question: str) -> str:
+    # walk through canonical departments first, then check aliases
     q = question.lower()
-    for dept in MOCK_SLOTS:
+    for dept in _CANONICAL_SLOTS:
         if dept != "default" and dept in q:
             return dept
+    for alias, canon in _ALIASES.items():
+        if alias in q:
+            return canon
     return "default"
 
 
-def _get_date(question):
-    # pull out the day name if mentioned and convert to an actual calendar date
-    weekdays = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-                "friday": 4, "saturday": 5, "sunday": 6}
+def _get_date(question: str) -> str:
+    # pull out the day name if mentioned and convert it to an actual calendar date
+    weekdays = {
+        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+        "friday": 4, "saturday": 5, "sunday": 6,
+    }
     q = question.lower()
     for name, num in weekdays.items():
         if name in q:
@@ -64,10 +76,10 @@ def _get_date(question):
     return "next available date"
 
 
-def route(question):
+def route(question: str, session_id: str = "") -> dict:
     logger.info("Routing: %s", question)
 
-    # appointment check — pure keyword match, no LLM call needed here
+    # appointment check uses pure keyword matching, no LLM call needed here
     if any(kw in question.lower() for kw in APPOINTMENT_KEYWORDS):
         dept = _get_department(question)
         requested_date = _get_date(question)
@@ -78,11 +90,7 @@ def route(question):
             f"Available slots around {requested_date}: {', '.join(slot_info['available_slots'])}. "
             f"{slot_info['note']}"
         )
-        # save to history so follow-up questions about this appointment still work
-        conversation_history.append({"role": "user",      "content": question})
-        conversation_history.append({"role": "assistant", "content": answer})
-
-        logger.info("Appointment tool used — dept: %s", dept)
+        logger.info("Appointment tool used -- dept: %s", dept)
         return {
             "answer":      answer,
             "sources":     [],
@@ -91,5 +99,5 @@ def route(question):
             "tool_output": slot_info,
         }
 
-    # not an appointment question — hand off to the RAG pipeline
-    return answer_question(question)
+    # not an appointment question, hand off to the RAG pipeline
+    return answer_question(question, session_id)
