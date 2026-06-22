@@ -162,11 +162,63 @@ AFTER:
   - Total tests: 21 (was 6).
 
 
+FILE: app/config.py (addendum)
+------------------------------
+BEFORE:
+  - GROQ_API_KEY was passed to ChatGroq as a plain Python str.
+    If the config object was ever printed, logged, or appeared in an exception traceback,
+    the actual API key would show up in plain text.
+
+AFTER:
+  - GROQ_API_KEY is now wrapped in Pydantic's SecretStr before being passed to ChatGroq.
+    SecretStr overrides __repr__ and __str__ so it always prints as ********** instead of
+    the real value. The key can only be retrieved explicitly via .get_secret_value().
+    This means accidental logging, debug output, or serialised error responses will never
+    expose the key. It also satisfies ChatGroq's own type hint, which expects SecretStr
+    precisely for this reason.
+
+
+FILE: app/embeddings.py (addendum)
+-----------------------------------
+BEFORE:
+  - Chroma was imported from langchain_community.vectorstores.
+  - TextLoader was imported from langchain_community.document_loaders.
+    Both triggered a deprecation warning on every import:
+    "langchain-community is being sunset and is no longer actively maintained."
+    The warning appeared in every test run and every server startup.
+
+AFTER:
+  - Chroma is now imported from langchain_chroma (the official standalone package,
+    langchain-chroma==1.1.0). This is the migration path recommended by LangChain.
+  - TextLoader has been removed entirely. We only ever loaded plain .txt files,
+    so it is replaced with path.read_text() and a manually constructed Document object
+    from langchain_core.documents. This is simpler, has no external dependency, and
+    removes the last remaining import from langchain-community.
+  - langchain-community has been removed from requirements.txt and pyproject.toml.
+    langchain-chroma==1.1.0 added in its place.
+  - The deprecation warning no longer appears anywhere.
+
+
 NEW DEPENDENCY: slowapi==0.1.10
 -------------------------------
   Installed via: uv pip install slowapi
   Used for: IP-based rate limiting on the /ask endpoint.
   Also pulled in: limits==5.8.0, deprecated==1.3.1, wrapt==2.2.2 (slowapi's own dependencies).
+
+
+NEW DEPENDENCY: langchain-chroma==1.1.0
+----------------------------------------
+  Installed via: uv pip install langchain-chroma
+  Used for: the Chroma vector store import in embeddings.py.
+  Replaces: langchain-community, which is being sunset by LangChain.
+  This is the officially recommended migration path from LangChain's own docs.
+
+
+uv.lock UPDATED
+---------------
+  uv lock was re-run after adding slowapi and langchain-chroma, and removing
+  langchain-community. The lockfile is now fully in sync with pyproject.toml.
+  Any deployment using uv sync will get the exact same environment.
 
 
 WHAT WAS NOT CHANGED
@@ -177,5 +229,5 @@ WHAT WAS NOT CHANGED
     threadpool which is adequate at current traffic levels).
   - Keyword routing tightening: agreed to defer, needs product decisions.
   - Structured logging: deferred, not urgent without a log aggregation stack in place.
-  - langchain-community deprecation warning: the library still works; migration to
-    standalone integration packages is a separate task.
+  - Library version bumps (groq 0.37 to 1.5, starlette 1.1 to 1.3, etc.): deferred,
+    to be handled separately as they carry a risk of breaking changes.
