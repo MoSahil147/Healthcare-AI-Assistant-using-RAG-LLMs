@@ -23,7 +23,7 @@ User Question
      │
      ▼
 ┌──────────────────────────────────────┐
-│  Query Rewriting (main.py / rag.py)  │  uses conversation history to clarify vague follow-ups
+│   Query Rewriting (agent.py / rag.py) │  uses conversation history to clarify vague follow-ups
 └──────────────────┬───────────────────┘
                    │
                    ▼
@@ -36,7 +36,7 @@ User Question
         check_available_slots()   RAG Pipeline (rag.py)
         mock slot response        │
                                   ├─ Embed question (HF Inference API)
-                                  ├─ Query ChromaDB (top-3 chunks, cosine similarity)
+                                  ├─ Query ChromaDB (top-4 chunks, cosine similarity)
                                   ├─ Build prompt (context + question)
                                   ├─ Call Groq LLM (llama-3.3-70b-versatile)
                                   └─ Answer + Source Citations + Confidence
@@ -155,7 +155,7 @@ curl http://localhost:8000/health
 Manually re-ingests all `.txt` files from `/data` into ChromaDB.
 ```bash
 curl -X POST http://localhost:8000/ingest
-# {"status":"ok","chunks_stored":89}
+# {"status":"ok","chunks_stored":54}
 ```
 
 ### `POST /ask`
@@ -249,7 +249,7 @@ Does the question contain appointment keywords?
       YES ──► extract department + date ──► check_available_slots() ──► mock slots response
        │
        NO ──► RAG pipeline:
-              embed question → ChromaDB top-3 chunks
+              embed question → ChromaDB top-4 chunks
               → if distance > 0.8: return fallback (no hallucination)
               → else: build prompt → Groq LLM → answer + citations
 ```

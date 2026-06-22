@@ -221,6 +221,53 @@ uv.lock UPDATED
   Any deployment using uv sync will get the exact same environment.
 
 
+FILE: Dockerfile
+----------------
+BEFORE:
+  - Used uv:latest which is an unpinned tag. Any new uv release could silently change
+    build behaviour between deployments.
+  - Used "uv pip install --system --no-cache -r requirements.txt" which goes against
+    using uv properly. It bypasses the lockfile and installs from requirements.txt
+    directly, the same way pip would.
+  - Copied requirements.txt before the app code but not pyproject.toml or uv.lock,
+    so the dependency layer was not properly tied to the lockfile.
+
+AFTER:
+  - uv pinned to 0.10.7 (matching the local version) so builds are reproducible.
+  - Switched to "uv sync --frozen --no-dev" which installs exact versions from uv.lock
+    and skips dev dependencies (pytest etc.) in the production image.
+  - pyproject.toml and uv.lock are now copied before the rest of the code, so Docker
+    can cache the install layer and only rebuild it when dependencies actually change.
+  - CMD now uses "uv run uvicorn ..." which runs inside the project environment
+    managed by uv, consistent with how you run it locally.
+
+
+FILE: README.md
+---------------
+BEFORE:
+  - Project structure listed only 3 app files with inaccurate descriptions.
+    agent.py, embeddings.py, llm.py were missing. pyproject.toml and uv.lock
+    were not listed.
+  - Tech stack had no mention of slowapi or tenacity.
+  - Local setup used "uv pip install -r requirements.txt" instead of "uv sync".
+  - The /ask endpoint docs had no mention of session_id.
+  - Limitations said "multiple concurrent users would share history" which is no
+    longer true after the per-session history fix.
+  - Future improvements said "per-session conversation history" as a todo, but
+    it is now implemented.
+
+AFTER:
+  - Project structure updated with all 6 app modules and correct descriptions.
+    pyproject.toml and uv.lock added to the listing.
+  - slowapi and tenacity added to the tech stack table.
+  - Local setup now uses "uv sync" to install from the lockfile.
+  - /ask endpoint section documents the session_id field with a multi-turn example.
+  - Limitations updated: the shared history limitation is removed, replaced with a
+    note that history is in-memory and resets on server restart.
+  - Future improvements updated: Redis persistence listed instead of session isolation
+    (since isolation is already done).
+
+
 LIBRARY UPDATES
 ---------------
 Low-risk patches and minor versions updated first, then medium-risk tested separately.
