@@ -1,0 +1,181 @@
+PRODUCTION OPTIMISATION CHANGES
+================================
+All changes are non-breaking. No pushes made. Tests pass (21/21).
+
+
+FILE: app/config.py
+-------------------
+BEFORE:
+  - embeddings, primary_llm, and fallback_llm were instantiated at module import time.
+    Any test that imported config triggered real network calls to HuggingFace and Groq.
+  - No validation of environment variables. If HF_TOKEN or GROQ_API_KEY were missing,
+    the server would start silently and then crash cryptically on the first real request.
+
+AFTER:
+  - All three models are now lazy singletons (get_embeddings, get_primary_llm, get_fallback_llm).
+    They are created on first use, not at import time.
+  - Added validate_env() which is called during server startup. It raises a clear
+    RuntimeError immediately if either API key is missing or empty.
+
+
+FILE: app/embeddings.py
+-----------------------
+BEFORE:
+  - query_similar() created a new Chroma(...) connection on every single call.
+    Every request to /ask reopened the vector store from disk, reloaded the collection,
+    and then closed it again. This was the biggest avoidable latency in the whole pipeline.
+  - ingest_documents() called shutil.rmtree() on the live store before writing the new one.
+    Any request that arrived during the few seconds of re-ingestion would fail because
+    the store no longer existed on disk.
+
+AFTER:
+  - Added a module-level _vectorstore singleton. _get_vectorstore() initialises it once
+    and returns the same connection for every subsequent request.
+  - ingest_documents() now writes to a temporary path (./store/chroma_tmp) first, then
+    renames it into place. The old store is only deleted after the new one is ready,
+    so in-flight queries are not disrupted.
+  - After a successful ingest, _vectorstore is reset to None so the next query loads
+    the freshly built store.
+
+
+FILE: app/rag.py
+----------------
+BEFORE:
+  - conversation_history was a single module-level list shared by all users.
+    In a multi-user environment every user's conversation would leak into every other
+    user's context. Query rewrites would use the wrong history entirely.
+
+AFTER:
+  - Replaced the global list with _session_histories, an OrderedDict keyed by session_id.
+    Each user gets a completely separate history.
+  - Added _get_history(session_id) which also evicts the oldest session when the number of
+    active sessions exceeds _MAX_SESSIONS (1000), preventing unbounded memory growth.
+  - rewrite_query and answer_question both now take session_id as a parameter.
+
+
+FILE: app/llm.py
+----------------
+BEFORE:
+  - Only RateLimitError was caught. Any other transient failure (network timeout,
+    Groq 5xx, connection reset) would propagate straight to the user as a 500 error.
+  - Models were imported from config directly as module-level globals.
+
+AFTER:
+  - Added _invoke_with_retry() decorated with tenacity. It retries up to 3 times with
+    exponential backoff (1s to 8s) for any exception that is NOT a RateLimitError.
+    RateLimitError is excluded because we want to fall back to the smaller model immediately
+    rather than waiting and retrying the same rate-limited model.
+  - Now calls get_primary_llm() and get_fallback_llm() from config (lazy singletons).
+
+
+FILE: app/agent.py
+------------------
+BEFORE:
+  - MOCK_SLOTS contained duplicate entries for alternate spellings:
+    "orthopaedics" and "orthopedics" had identical slot lists copied twice.
+    Same for "psychiatry"/"mental health", "paediatrics"/"pediatrics",
+    "gynaecology"/"gynecology". Updating one spelling would leave the other stale.
+  - route() did not accept or pass a session_id, so conversation history from agent
+    routing was silently discarded and never contributed to query rewriting.
+  - conversation_history was imported and appended to directly inside route(),
+    which would not work correctly once history became per-session.
+
+AFTER:
+  - Replaced MOCK_SLOTS with _CANONICAL_SLOTS (one entry per department, no duplication)
+    and a separate _ALIASES dict that maps alternate spellings to the canonical key.
+    _get_department() now checks canonical names first, then resolves aliases.
+  - route() now accepts session_id and passes it through to answer_question().
+  - Removed the direct conversation_history import and append (history is now managed
+    entirely inside rag.py per session).
+
+
+FILE: app/main.py
+-----------------
+BEFORE:
+  - No rate limiting on /ask. Each request triggers up to two Groq LLM calls (rewrite
+    plus answer). A single client could exhaust the Groq quota or run up costs freely.
+  - No environment variable validation at startup.
+  - AskRequest had no session_id field, so every request was treated as a new anonymous
+    session with no conversation continuity across requests.
+  - Blocking ingest at startup with no prior env var check.
+
+AFTER:
+  - Added slowapi rate limiter (20 requests per minute per IP) on the /ask endpoint.
+  - lifespan now calls validate_env() before attempting to ingest, so a missing API key
+    is reported clearly at startup rather than on the first request.
+  - AskRequest now includes an optional session_id field. If the client does not send one,
+    a UUID is generated automatically. This allows multi-turn conversations to work correctly
+    across multiple requests from the same client.
+  - ask() now passes body.session_id through to route() so history is properly scoped.
+
+
+FILE: requirements.txt
+----------------------
+BEFORE:
+  - All packages were unpinned (e.g. "fastapi" with no version).
+    A breaking release in any dependency could silently break the app on the next deployment.
+  - slowapi and tenacity were missing even though tenacity was already installed.
+  - langchain sub-packages (langchain-community, langchain-groq, etc.) were not listed.
+
+AFTER:
+  - All packages are pinned to exact versions matching the current installed environment.
+  - slowapi==0.1.10 and tenacity==9.1.4 added.
+  - All langchain sub-packages explicitly listed.
+  - Organised into labelled sections (runtime, vector store, langchain, llm/embeddings,
+    rate limiting and retry, utilities, dev/test).
+
+
+FILE: pyproject.toml
+--------------------
+BEFORE:
+  - Listed torch, transformers, accelerate, sentence-transformers as dependencies,
+    which were not in requirements.txt.
+  - Did not list langchain, langchain-groq, groq, slowapi, tenacity, or the langchain
+    sub-packages, which were in requirements.txt.
+  - The two files were out of sync and could produce different environments depending
+    on which one was used during installation.
+
+AFTER:
+  - All dependencies aligned with requirements.txt and pinned to the same exact versions.
+  - Both files now describe the same environment. pyproject.toml remains the canonical
+    source for uv-based installs; requirements.txt covers pip-based installs.
+
+
+FILE: tests/test_api.py
+-----------------------
+BEFORE:
+  - Tests only mocked app.main.route entirely, so none of the actual logic in agent.py,
+    rag.py, or llm.py was ever exercised.
+  - No tests for _get_department, _get_date, _confidence, session isolation, or the
+    alias resolution logic. Bugs in any of these would go completely undetected.
+
+AFTER:
+  - Added 15 new unit tests covering:
+      - _get_department: canonical names, alias resolution, default fallback
+      - _get_date: day name extraction, no-day fallback
+      - check_available_slots: known department, default department
+      - alias resolution: _get_department resolves alias to canonical before slot lookup
+      - _confidence: all three bands (high, medium, low)
+      - session history isolation: two sessions do not share history
+      - session history persistence: history within a session is retained across calls
+      - session_id in /ask: auto-assignment when not provided, correct forwarding when provided
+  - Total tests: 21 (was 6).
+
+
+NEW DEPENDENCY: slowapi==0.1.10
+-------------------------------
+  Installed via: uv pip install slowapi
+  Used for: IP-based rate limiting on the /ask endpoint.
+  Also pulled in: limits==5.8.0, deprecated==1.3.1, wrapt==2.2.2 (slowapi's own dependencies).
+
+
+WHAT WAS NOT CHANGED
+--------------------
+  - CORS is still allow_origins=["*"]. Agreed this is fine until a specific
+    frontend domain is ready to lock it to.
+  - Async routes: /ask and /ingest remain synchronous (sync routes run in FastAPI's
+    threadpool which is adequate at current traffic levels).
+  - Keyword routing tightening: agreed to defer, needs product decisions.
+  - Structured logging: deferred, not urgent without a log aggregation stack in place.
+  - langchain-community deprecation warning: the library still works; migration to
+    standalone integration packages is a separate task.
