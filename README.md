@@ -2,6 +2,8 @@
 
 A RAG-based AI assistant that answers healthcare questions from a curated document knowledge base, with an agentic appointment-routing workflow and query rewriting  built for the Mindbowser AI Engineer hackathon.
 
+https://deepwiki.com/badge-maker?url=https%3A%2F%2Fdeepwiki.com%2FMoSahil147%2FHealthcare-AI-Assistant-using-RAG-LLMs
+
 ## Live Demo
 
 | | URL |
