@@ -45,9 +45,12 @@ User Question
 ```
 Healthcare-AI-Assistant-using-RAG-LLMs/
 ├── app/
-│   ├── config.py     # all config constants + model instances (embeddings, LLMs)
-│   ├── rag.py        # document ingestion, similarity search, query rewriting, RAG answer
-│   └── main.py       # appointment routing + FastAPI endpoints
+│   ├── config.py      # constants, env validation, lazy model singletons
+│   ├── embeddings.py  # document ingestion, ChromaDB singleton, similarity search
+│   ├── rag.py         # per-session history, query rewriting, RAG answer pipeline
+│   ├── llm.py         # prompt template, Groq call with tenacity retry + fallback
+│   ├── agent.py       # keyword router, appointment slot tool
+│   └── main.py        # FastAPI app, rate limiting, request/response models
 ├── data/
 │   ├── telehealth_guidelines.txt
 │   ├── medication_refill_policy.txt
@@ -56,13 +59,15 @@ Healthcare-AI-Assistant-using-RAG-LLMs/
 │   ├── appointment_scheduling_policy.txt
 │   └── insurance_eligibility_faq.txt
 ├── static/
-│   └── index.html    # chat UI (served at /)
-├── store/            # ChromaDB persistence (gitignored)
+│   └── index.html     # chat UI (served at /)
+├── store/             # ChromaDB persistence (gitignored)
 ├── tests/
-│   └── test_api.py
-├── .env              # HF_TOKEN and GROQ_API_KEY (never committed)
+│   └── test_api.py    # 21 tests covering endpoints, routing logic, RAG helpers
+├── .env               # HF_TOKEN and GROQ_API_KEY (never committed)
 ├── .env.example
 ├── requirements.txt
+├── pyproject.toml
+├── uv.lock
 ├── Dockerfile
 └── docker-compose.yml
 ```
@@ -77,7 +82,9 @@ Healthcare-AI-Assistant-using-RAG-LLMs/
 | Vector DB       | ChromaDB (persistent, cosine similarity)  | File-based, no external service needed, easy Docker volume       |
 | RAG Framework   | LangChain                                 | Clean abstractions for loading, chunking, and retrieval          |
 | API Framework   | FastAPI                                   | Fast, typed, auto-docs at `/docs`                                |
-| Package Manager | uv                                        | 10-100x faster than pip                                          |
+| Rate Limiting   | slowapi                                   | IP-based rate limiting on `/ask` to protect Groq quota           |
+| Retry           | tenacity                                  | Exponential backoff on transient LLM errors before returning 500 |
+| Package Manager | uv                                        | 10-100x faster than pip, lockfile via uv.lock                    |
 
 ## Dataset
 
@@ -110,9 +117,9 @@ Get your free tokens:
 ## Local Setup
 
 ```bash
-# 1. Install dependencies with uv
+# 1. Create the virtual environment and install all pinned dependencies
 uv venv && source .venv/bin/activate
-uv pip install -r requirements.txt
+uv sync
 
 # 2. Add your API keys to .env
 cp .env.example .env
@@ -150,11 +157,24 @@ curl -X POST http://localhost:8000/ingest
 ```
 
 ### `POST /ask`
+
+Accepts an optional `session_id` to maintain conversation history across multiple requests.
+If omitted, a UUID is generated automatically for that request.
+
 ```bash
 # In-document question
 curl -X POST http://localhost:8000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "Can a patient request a medication refill through telehealth?"}'
+
+# Multi-turn conversation (pass the same session_id across requests)
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Can a patient request a medication refill through telehealth?", "session_id": "user-123"}'
+
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What about controlled substances?", "session_id": "user-123"}'
 
 # Out-of-domain fallback test
 curl -X POST http://localhost:8000/ask \
@@ -247,8 +267,7 @@ uv run pytest tests/ -v
 - Keyword-based appointment routing can misroute ambiguous edge-case questions.
 - No user authentication — all endpoints are public.
 - Mock appointment slots are hardcoded; no real scheduling system connected.
-- Global conversation history resets on server restart.
-- Single-user session; multiple concurrent users would share history.
+- Per-session conversation history is in-memory and resets on server restart.
 
 **With more time:**
 - Replace keyword router with a small LLM classifier for intent detection.
@@ -256,7 +275,7 @@ uv run pytest tests/ -v
 - Implement streaming responses for faster perceived latency.
 - Connect to a real appointment scheduling system via calendar API.
 - Add JWT/OAuth2 authentication with role-based access.
-- Per-session conversation history using Redis or session tokens.
+- Persist session history to Redis so conversations survive server restarts.
 
 ## Healthcare Data Privacy Note
 
