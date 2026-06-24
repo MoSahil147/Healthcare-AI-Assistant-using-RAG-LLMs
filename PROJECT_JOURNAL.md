@@ -10,17 +10,17 @@
 **Part 1 — Introduction (What we built and why)**
 1. [How We Planned and Approached This Project](#1-how-we-planned-and-approached-this-project)
 2. [The Working Application](#2-the-working-application)
+3. [Assumptions Made While Building This Project](#3-assumptions-made-while-building-this-project)
 
 **Part 2 — Technical Deep Dive (How it works)**
-3. [Architecture and Design Approach](#3-architecture-and-design-approach)
-4. [The RAG Pipeline and LLM Integration](#4-the-rag-pipeline-and-llm-integration)
-5. [Prompt Engineering Strategy](#5-prompt-engineering-strategy)
-6. [Agent and Tool Workflow Implementation](#6-agent-and-tool-workflow-implementation)
-7. [API and Demo Flow](#7-api-and-demo-flow)
+4. [Architecture and Design Approach](#4-architecture-and-design-approach)
+5. [The RAG Pipeline and LLM Integration](#5-the-rag-pipeline-and-llm-integration)
+6. [Prompt Engineering Strategy](#6-prompt-engineering-strategy)
+7. [Agent and Tool Workflow Implementation](#7-agent-and-tool-workflow-implementation)
+8. [API and Demo Flow](#8-api-and-demo-flow)
 
 **Part 3 — Decisions and Trade-offs (Why we built it this way)**
-8. [Key Technical Decisions and Trade-offs](#8-key-technical-decisions-and-trade-offs)
-9. [Assumptions Made While Building This Project](#9-assumptions-made-while-building-this-project)
+9. [Key Technical Decisions and Trade-offs](#9-key-technical-decisions-and-trade-offs)
 
 **Part 4 — Challenges and Learnings (What went wrong and what we learnt)**
 10. [Problems We Faced and How We Debugged Them](#10-problems-we-faced-and-how-we-debugged-them)
@@ -523,34 +523,6 @@ The backend also auto-generates one if the client omits it (Pydantic validator).
 
 ---
 
-### Bug 6: UI header showed the wrong LLM name ("Phi-2")
-
-**Symptom:** The header said *"Powered by RAG · Phi-2 · ChromaDB"* but the backend was running Llama 3.3.
-
-**Root cause:** The initial template used Phi-2 as a placeholder and was never updated when we switched to Groq/Llama.
-
-**Fix:** Updated `static/index.html` header to *"Powered by RAG · Llama 3.3 · ChromaDB"*.
-
----
-
-### Bug 7: Suggestion button asked about HIPAA (US) but the knowledge base has DPDPA (India)
-
-**Symptom:** The welcome screen suggested *"What are my rights under HIPAA?"* but the document is DPDPA 2023 (Indian law). Users clicking the suggestion got a confused or incomplete answer.
-
-**Root cause:** Template/placeholder mismatch. The document file is named `hipaa_privacy_guidelines.txt` but actually contains Indian regulatory content written for the DPDPA 2023.
-
-**Fix:** Updated the suggestion button to *"What are my rights under the DPDPA regarding my health data?"* and updated the system prompt to instruct the LLM to answer even when law names differ between the question and the document.
-
----
-
-### Bug 8: `--reload` triggered re-ingestion on every file save
-
-**Symptom:** During development with `uvicorn --reload`, every time we saved any Python file, the server would restart and re-ingest all documents, making development slow.
-
-**Root cause:** `--reload` watches all files by default, including the `./store/` directory where ChromaDB writes its own files. Any DB write triggered a reload, which triggered re-ingest, which triggered more DB writes, creating an infinite loop.
-
-**Fix:** Added `--reload-exclude store` to the uvicorn command to exclude the vector store directory from file watching.
-
 ---
 
 ## 10. New Things We Learnt
@@ -597,10 +569,7 @@ The HuggingFace `all-MiniLM-L6-v2` model requires approximately 400 MB of RAM wh
 
 These are the things we would do differently from day one:
 
-### 1. Name your data files accurately from the start
-Our `hipaa_privacy_guidelines.txt` actually contains DPDPA 2023 content. This caused a cascade: the LLM refused to answer "HIPAA" questions, the suggestion buttons were wrong, and the system prompt needed a workaround clause. Name files what they actually contain.
-
-### 2. Design the session ID contract before building anything
+### 1. Design the session ID contract before building anything
 We built session history on the backend and the frontend separately. The frontend did not send session IDs for days, so query rewriting silently did not work. Define the request contract (including `session_id`) before building either side.
 
 ### 3. Use word boundaries for keyword matching from the start
