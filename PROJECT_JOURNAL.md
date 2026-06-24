@@ -312,21 +312,36 @@ Message received
 
 ### Greeting Detection
 
-Early version used simple substring matching:
+We went through three versions of greeting detection, each fixing a new problem:
 
+**Version 1 — simple substring (broken):**
 ```python
-# BAD: "what is morphine" matches "hi" inside "morphine" -> false positive
+# BAD: "what is morphine" matches "hi" inside "morphine"
 if any(kw in question.lower() for kw in GREETING_KEYWORDS):
 ```
 
-Fixed version uses regex word boundaries:
-
+**Version 2 — regex word boundary (better, but still had a gap):**
 ```python
-# GOOD: \bhi\b only matches "hi" as a standalone word
+# BETTER: \bhi\b only matches "hi" as a standalone word
 if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
 ```
+This fixed the morphine bug. But a new problem appeared: `"Hi, I need to book an appointment"` was still treated as a greeting and never reached the appointment tool. The user clearly had intent beyond just saying hello.
 
-`\b` ensures "hi" only matches as a standalone word, not inside another word.
+**Version 3 — pure greeting check (final):**
+```python
+# BEST: only treat as greeting if the message is JUST a greeting with nothing else
+q_stripped = re.sub(rf'\b({"|".join(GREETING_KEYWORDS)})\b', '', question.lower()).strip(" !?,.")
+is_pure_greeting = any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS) and len(q_stripped) < 10
+```
+
+The idea: remove the greeting word from the message and check what's left. If almost nothing remains (less than 10 characters), it's a pure greeting. If there's real content left, the user has a question — skip the greeting and route normally.
+
+```
+"hi"                               → remove "hi" → "" → 0 chars  → greeting ✓
+"hello!"                           → remove "hello" → "!" → 1 char → greeting ✓
+"hi, I need to book an appointment"→ remove "hi" → "i need to book an appointment" → 30 chars → appointment tool ✓
+"hi, I need to know my rights"     → remove "hi" → "i need to know my rights" → 24 chars → RAG ✓
+```
 
 ### Appointment Tool
 
@@ -872,21 +887,28 @@ Now the chatbot responds politely to greetings without hitting the database or t
 
 ---
 
-### 2. Fixed the Greeting False Positive (Morphine Bug)
+### 2. Fixed Greeting Detection (Three Iterations)
 
-**Why:** After adding greeting detection, we noticed "what is morphine" was being treated as a greeting. The reason: `"hi"` is a substring of `"morpHIne"`. Simple `in` check matched it wrongly.
+**Problem 1 — Morphine bug:**
+`"what is morphine"` was treated as a greeting because `"hi"` is a substring of `"morphine"`. Fixed using regex word boundaries (`\bhi\b`).
 
-**What we changed:** Replaced the substring check with a regex word boundary check:
+**Problem 2 — Mixed intent bug:**
+After the word boundary fix, `"Hi, I need to book an appointment"` was still treated as a pure greeting. The user clearly wanted to book an appointment, but the greeting check ran first and returned "Hello!" — the appointment tool was never reached.
 
+**Final fix — pure greeting check:**
 ```python
-# Before (wrong — matches "hi" inside "morphine")
-if any(kw in question.lower() for kw in GREETING_KEYWORDS):
-
-# After (correct — only matches "hi" as a standalone word)
-if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
+# Remove the greeting word and check what's left
+q_stripped = re.sub(rf'\b({"|".join(GREETING_KEYWORDS)})\b', '', question.lower()).strip(" !?,.")
+is_pure_greeting = any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS) and len(q_stripped) < 10
 ```
 
-`\b` means "word boundary" — so `"hi"` only matches when it is a separate word, not when it is hidden inside another word.
+If the message is almost entirely a greeting word (less than 10 characters left after removing it), respond with a greeting. Otherwise, route the message normally so the real intent is handled.
+
+```
+"hi"                                → greeting ✓
+"Hi, I need to book an appointment" → appointment tool ✓
+"Hi, I need to know my rights"      → RAG ✓
+```
 
 ---
 
