@@ -1,24 +1,37 @@
 # Healthcare AI Assistant: Project Journal
 
 > A complete record of how this project was built: planning, decisions, bugs, lessons learnt, and everything in between.
+> Sections are ordered in the way you would present this project to an evaluation panel.
 
 ---
 
 ## Table of Contents
 
+**Part 1 — Introduction (What we built and why)**
 1. [How We Planned and Approached This Project](#1-how-we-planned-and-approached-this-project)
 2. [The Working Application](#2-the-working-application)
+
+**Part 2 — Technical Deep Dive (How it works)**
 3. [Architecture and Design Approach](#3-architecture-and-design-approach)
 4. [The RAG Pipeline and LLM Integration](#4-the-rag-pipeline-and-llm-integration)
 5. [Prompt Engineering Strategy](#5-prompt-engineering-strategy)
 6. [Agent and Tool Workflow Implementation](#6-agent-and-tool-workflow-implementation)
 7. [API and Demo Flow](#7-api-and-demo-flow)
+
+**Part 3 — Decisions and Trade-offs (Why we built it this way)**
 8. [Key Technical Decisions and Trade-offs](#8-key-technical-decisions-and-trade-offs)
-9. [Problems We Faced and How We Debugged Them](#9-problems-we-faced-and-how-we-debugged-them)
-10. [New Things We Learnt](#10-new-things-we-learnt)
-11. [What to Keep in Mind if Starting Again](#11-what-to-keep-in-mind-if-starting-again)
-12. [Limitations and Future Improvements](#12-limitations-and-future-improvements)
-13. [Q&A Playbook: Good Questions, Failure Cases, and Hard Questions](#13-qa-playbook)
+9. [Assumptions Made While Building This Project](#9-assumptions-made-while-building-this-project)
+
+**Part 4 — Challenges and Learnings (What went wrong and what we learnt)**
+10. [Problems We Faced and How We Debugged Them](#10-problems-we-faced-and-how-we-debugged-them)
+11. [New Things We Learnt](#11-new-things-we-learnt)
+12. [What to Keep in Mind if Starting Again](#12-what-to-keep-in-mind-if-starting-again)
+
+**Part 5 — Honest Assessment (Where we stand)**
+13. [Limitations and Future Improvements](#13-limitations-and-future-improvements)
+
+**Part 6 — Panel Preparation (Anticipating questions)**
+14. [Q&A Playbook: Good Questions, Failure Cases, and Hard Questions](#14-qa-playbook)
 
 ---
 
@@ -729,3 +742,69 @@ Key gaps and considerations:
 ---
 
 *This document was written after completing the project to capture everything that was learnt, decided, and fixed. The goal is that someone reading this, including future-you, can understand not just what the code does but why every choice was made.*
+
+---
+
+## 14. Assumptions Made While Building This Project
+
+These are things we assumed to be true while building the project. We did not verify all of them with real data — they are reasonable guesses for a prototype/demo.
+
+---
+
+### 1. The documents are enough to answer most questions
+We assumed that 6 text files (discharge instructions, telehealth guidelines, insurance FAQ, etc.) would cover the kinds of questions a user would ask. In reality, a real healthcare assistant would need hundreds of documents. Our knowledge base is intentionally small for demo purposes.
+
+---
+
+### 2. Users will ask questions in English
+The system prompt, document content, and the embedding model (`all-MiniLM-L6-v2`) all work best with English text. We assumed users will type in English. If someone asks in Hindi or another language, the results may be poor.
+
+---
+
+### 3. Simple keyword matching is good enough to detect appointment questions
+We assumed that if the user's message contains words like "appointment", "book", "slot", or a department name like "cardiology", it is definitely an appointment question. This works for simple cases but can fail for ambiguous messages like *"I am sick and need help"* — which is not caught by keywords but is still an appointment-related concern.
+
+---
+
+### 4. The appointment tool does not need to be real
+We assumed the evaluators and users understand that the appointment slots are fake/mock data. There is no real calendar or hospital system behind it. The tool is there to demonstrate the concept of routing to an external tool — not to actually book anything.
+
+---
+
+### 5. One user session = one browser tab
+We assumed each user opens one browser tab and has one conversation at a time. The session ID is generated once per page load. If the user opens two tabs, they get two different sessions with no shared history.
+
+---
+
+### 6. The server will not receive more than 20 requests per minute from one user
+We set the rate limit to 20 requests per minute per IP address. We assumed normal users will not send more than that. This number was chosen to protect the Groq API quota, not based on any measured traffic data.
+
+---
+
+### 7. A cosine distance above 0.8 means the question is not in our documents
+We chose `0.8` as the threshold for deciding when to return a fallback answer. If the best matching chunk has a distance score above 0.8, we assume the question is not answerable from our documents. This number was picked based on observation during testing — not scientifically validated. It may need tuning in production.
+
+---
+
+### 8. Chunk size of 800 characters is a good fit for our documents
+We split documents into chunks of 800 characters with 100 characters of overlap. We assumed this size gives enough context per chunk without being so big that unrelated sentences get mixed together. We did not experiment with other sizes like 400 or 1200 characters.
+
+---
+
+### 9. No real patient data will be used
+We assumed this is a demo with synthetic (fake) documents only. The system has no PHI handling, no encryption, and no compliance features. We assumed the evaluators will not run it against real patient records.
+
+---
+
+### 10. The last 6 conversation turns are enough context for query rewriting
+When rewriting a vague follow-up question like *"what about its side effects?"*, we send the last 6 messages (3 user turns + 3 assistant replies) to the LLM for context. We assumed 6 turns is enough to understand what the user is referring to. Longer conversations might need more history.
+
+---
+
+### 11. One server process is enough
+We assumed only one or two people will use this at a time (demo/hackathon scenario). We run a single Uvicorn process. In production with many users, you would run multiple workers behind a load balancer.
+
+---
+
+### 12. Groq's free tier is fast and reliable enough for a demo
+We assumed Groq would respond quickly and not hit rate limits during the demo. Groq's free tier allows 30 requests per minute to the LLM. If the demo gets heavy usage, the fallback model (`llama-3.1-8b-instant`) will kick in automatically.
