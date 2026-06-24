@@ -83,8 +83,13 @@ def _get_date(question: str) -> str:
 def route(question: str, session_id: str = "") -> dict: # turns to dict, as key value pairs
     logger.info("Routing: %s", question)
 
-    # greeting
-    if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
+    # only treat as a pure greeting if the entire message is just a greeting word
+    # e.g. "hi", "hello!", "hey there" → greeting
+    # e.g. "hi, I need to book an appointment" → NOT a greeting, has real intent
+    q_stripped = re.sub(rf'\b({"|".join(GREETING_KEYWORDS)})\b', '', question.lower()).strip(" !?,.")
+    is_pure_greeting = any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS) and len(q_stripped) < 10
+
+    if is_pure_greeting:
         logger.info("Greeting detected")
         return {
             "answer":     "Hello! How can I help you with your healthcare questions today?",
@@ -93,6 +98,26 @@ def route(question: str, session_id: str = "") -> dict: # turns to dict, as key 
             "tool_used":  None,
             "tool_output": None,
         }
+
+#     question.lower() — converts question to lowercase so matching is case-insensitive.
+
+#   rf'\b{kw}\b' — a regex pattern:
+#   - r = raw string (so \b is not treated as backspace)
+#   - f = f-string (so {kw} gets replaced with actual keyword)
+#   - \b = word boundary (start/end of a word)
+
+#   So for kw = "hi", the pattern becomes \bhi\b:
+#   "what is morphine" → "hi" inside "morphine" → no word boundary → NO MATCH ✓
+#   "hi how are you"   → "hi" is standalone word → word boundary → MATCH ✓
+
+#   re.search(...) — searches for the pattern anywhere in the string, returns a match or None.
+
+#   any(...) — returns True if at least one keyword matches.
+
+#   Full example:
+#   question = "what is morphine"
+#   # kw = "hi" → re.search(r'\bhi\b', "what is morphine") → None (no match)
+#   # any([None, None, ...]) → False → not a greeting ✓
 
     # appointment check uses pure keyword matching, no LLM call needed here
     if any(kw in question.lower() for kw in APPOINTMENT_KEYWORDS):
