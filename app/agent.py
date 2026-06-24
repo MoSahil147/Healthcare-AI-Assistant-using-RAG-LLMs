@@ -6,6 +6,9 @@ from app.rag import answer_question
 logger = logging.getLogger(__name__)
 
 # if any of these words appear in the question, skip RAG and go to the appointment tool
+GREETING_KEYWORDS = {"hi", "hello", "hey", "good morning", "good evening", "good afternoon", "howdy"}
+
+# if any of these words appear in the question, skip RAG and go to the appointment tool
 APPOINTMENT_KEYWORDS = {
     "appointment", "book", "slot", "schedule", "available", "availability",
     "cardiology", "orthopaedics", "orthopedics", "dermatology", "neurology",
@@ -71,13 +74,23 @@ def _get_date(question: str) -> str:
     for name, num in weekdays.items():
         if name in q:
             today = date.today()
-            days_ahead = (num - today.weekday()) % 7 or 7
-            return (today + timedelta(days=days_ahead)).strftime("%A, %B %d")
+            days_ahead = (num - today.weekday()) % 7 or 7 # or 7 is to handle the case where teh result is 0, will force to next week
+            return (today + timedelta(days=days_ahead)).strftime("%A, %B %d") # Monday, June 27
     return "next available date"
 
 
-def route(question: str, session_id: str = "") -> dict:
+def route(question: str, session_id: str = "") -> dict: # turns to dict, as key value pairs
     logger.info("Routing: %s", question)
+
+    if any(kw in question.lower() for kw in GREETING_KEYWORDS):
+        logger.info("Greeting detected")
+        return {
+            "answer":     "Hello! How can I help you with your healthcare questions today?",
+            "sources":    [],
+            "confidence": "high",
+            "tool_used":  None,
+            "tool_output": None,
+        }
 
     # appointment check uses pure keyword matching, no LLM call needed here
     if any(kw in question.lower() for kw in APPOINTMENT_KEYWORDS):
