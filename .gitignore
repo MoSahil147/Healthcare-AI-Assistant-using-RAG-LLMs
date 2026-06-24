@@ -18,3 +18,4 @@ models/
 .pytest_cache/
 .ruff_cache/
 start.txt
+test_questions.txt

@@ -30,8 +30,11 @@
 **Part 5 — Honest Assessment (Where we stand)**
 13. [Limitations and Future Improvements](#13-limitations-and-future-improvements)
 
-**Part 6 — Panel Preparation (Anticipating questions)**
-14. [Q&A Playbook: Good Questions, Failure Cases, and Hard Questions](#14-qa-playbook)
+**Part 6 — Modifications and Improvements Made**
+14. [Modifications and Improvements Made After Initial Build](#14-modifications-and-improvements-made-after-initial-build)
+
+**Part 7 — Panel Preparation (Anticipating questions)**
+15. [Q&A Playbook: Good Questions, Failure Cases, and Hard Questions](#15-qa-playbook)
 
 ---
 
@@ -170,12 +173,44 @@ On startup (and whenever `POST /ingest` is called):
 
 1. Load all `.txt` files from `./data/`
 2. Split each document into chunks: **800 characters, 100-character overlap**
-   - Overlap prevents a sentence that spans a chunk boundary from losing context
 3. Convert each chunk into a vector using `all-MiniLM-L6-v2` (384-dimensional vectors)
 4. Store all vectors in ChromaDB using **cosine similarity** rather than Euclidean; cosine ignores magnitude, which is better for text
 5. **Atomic swap:** write to `./store/chroma_tmp`, then rename to `./store/chroma`; live queries never read a half-written database
 
 Result: **54 chunks** across 6 documents, indexed and ready for semantic search.
+
+### Why 800 Characters Per Chunk?
+
+Medical and healthcare documents are different from regular text. A single idea — like a discharge instruction or a privacy policy clause — often spans multiple sentences. You cannot cut it too short or you lose the meaning.
+
+We tested different sizes mentally:
+
+| Chunk Size | Problem |
+|------------|---------|
+| Too small (200-300 chars) | A single medical sentence gets cut in half. The chunk loses context and becomes useless for answering questions. |
+| Too large (1500+ chars) | One chunk covers too many different topics. When retrieved, it brings in irrelevant information that confuses the LLM. |
+| **800 chars (chosen)** | Fits 2-3 complete sentences or one full policy clause. Enough context to answer a question, not so much that it adds noise. |
+
+We also considered 900 characters but found that at that size, chunks from our 6 documents started overlapping in meaning — two different chunks would carry almost the same content, wasting retrieval slots. 800 was the sweet spot where each chunk felt like a distinct, self-contained piece of information.
+
+### Why 100 Characters Overlap?
+
+Without overlap, imagine a sentence that starts at character 795 and ends at character 830. It gets split — the first half goes into chunk 1, the second half into chunk 2. Neither chunk makes sense on its own.
+
+100 characters of overlap means the last ~1-2 sentences of one chunk are repeated at the start of the next. This ensures:
+- No sentence is ever broken at a boundary
+- The context carries smoothly from one chunk to the next
+- The LLM always receives complete thoughts, not half-sentences
+
+We chose 100 specifically because our documents use short, policy-style sentences (typically 80-120 characters each). 100 characters is enough to capture one full sentence of overlap without wasting too much space repeating content.
+
+### Why Retrieve Top 4 Chunks?
+
+When a user asks a question, we search ChromaDB and return the 4 most relevant chunks. Here is why 4:
+
+- **Too few (1-2 chunks):** If the answer is spread across two different parts of a document, retrieving only 1 chunk means you miss half the answer. For example, a question about telehealth refill policy might need one chunk about eligibility and another about the actual process.
+- **Too many (8-10 chunks):** The LLM prompt becomes very long and noisy. Irrelevant chunks get mixed in, and the LLM may get confused about which part to use for the answer.
+- **4 chunks:** Enough to cover answers that span multiple sections of a document, while keeping the prompt clean and focused. At our document scale (6 files, 54 chunks total), 4 gives good coverage without overloading the model.
 
 ### Query Flow (`rag.py`)
 
@@ -808,3 +843,90 @@ We assumed only one or two people will use this at a time (demo/hackathon scenar
 
 ### 12. Groq's free tier is fast and reliable enough for a demo
 We assumed Groq would respond quickly and not hit rate limits during the demo. Groq's free tier allows 30 requests per minute to the LLM. If the demo gets heavy usage, the fallback model (`llama-3.1-8b-instant`) will kick in automatically.
+
+---
+
+## 14. Modifications and Improvements Made After Initial Build
+
+These are changes we made after the first working version was ready. Each one fixed a real problem we noticed during testing.
+
+---
+
+### 1. Added Greeting Detection
+
+**Why:** The chatbot had no way to handle simple greetings like "hi" or "hello". It would search ChromaDB for relevant medical chunks, find nothing useful, and return a fallback message — which felt rude and broken.
+
+**What we added:** A `GREETING_KEYWORDS` set and a check at the top of the `route()` function in `agent.py`:
+
+```python
+GREETING_KEYWORDS = {"hi", "hello", "hey", "good morning", "good evening", "good afternoon", "howdy"}
+
+if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
+    return {
+        "answer": "Hello! How can I help you with your healthcare questions today?",
+        "sources": [], "confidence": "high", ...
+    }
+```
+
+Now the chatbot responds politely to greetings without hitting the database or the LLM.
+
+---
+
+### 2. Fixed the Greeting False Positive (Morphine Bug)
+
+**Why:** After adding greeting detection, we noticed "what is morphine" was being treated as a greeting. The reason: `"hi"` is a substring of `"morpHIne"`. Simple `in` check matched it wrongly.
+
+**What we changed:** Replaced the substring check with a regex word boundary check:
+
+```python
+# Before (wrong — matches "hi" inside "morphine")
+if any(kw in question.lower() for kw in GREETING_KEYWORDS):
+
+# After (correct — only matches "hi" as a standalone word)
+if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
+```
+
+`\b` means "word boundary" — so `"hi"` only matches when it is a separate word, not when it is hidden inside another word.
+
+---
+
+### 3. Fixed Session ID Not Being Sent from the Frontend
+
+**Why:** The backend had full session history support — it stored conversation turns and used them to rewrite vague follow-up questions. But it was never working because the frontend was not sending a `session_id` with each request. Every message was treated as a fresh conversation with no history.
+
+**What we changed:** Added one line to `static/index.html` to generate a session ID once when the page loads, and included it in every request:
+
+```javascript
+// Generate once when the page opens
+const SESSION_ID = crypto.randomUUID();
+
+// Send it with every question
+body: JSON.stringify({ question, session_id: SESSION_ID })
+```
+
+Now all messages from the same browser tab share the same session, and the query rewriting feature actually works.
+
+---
+
+### 4. Added `.dockerignore` to Reduce Docker Image Size
+
+**Why:** The Docker image was copying everything into the container — including `Demo.mp4`, the entire git history (`.git/`), the ChromaDB store, test files, and Python cache. This made the image unnecessarily large and slow to build.
+
+**What we added:** A `.dockerignore` file that tells Docker to skip unnecessary files:
+
+```
+.git
+__pycache__
+.venv
+store/
+tests/
+Demo.gif
+Demo.mp4
+.env
+```
+
+Key savings:
+- `Demo.mp4` — large video file, not needed inside the container
+- `store/` — ChromaDB is rebuilt fresh on every startup anyway
+- `.git/` — entire git history serves no purpose inside the container
+- `__pycache__` — compiled Python files that get regenerated automatically
