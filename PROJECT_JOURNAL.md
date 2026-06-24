@@ -1,0 +1,725 @@
+# Healthcare AI Assistant — Project Journal
+
+> A complete record of how this project was built: planning, decisions, bugs, lessons learned, and everything in between.
+
+---
+
+## Table of Contents
+
+1. [How We Planned and Approached This Project](#1-how-we-planned-and-approached-this-project)
+2. [The Working Application](#2-the-working-application)
+3. [Architecture and Design Approach](#3-architecture-and-design-approach)
+4. [The RAG Pipeline and LLM Integration](#4-the-rag-pipeline-and-llm-integration)
+5. [Prompt Engineering Strategy](#5-prompt-engineering-strategy)
+6. [Agent and Tool Workflow Implementation](#6-agent-and-tool-workflow-implementation)
+7. [API and Demo Flow](#7-api-and-demo-flow)
+8. [Key Technical Decisions and Trade-offs](#8-key-technical-decisions-and-trade-offs)
+9. [Problems We Faced and How We Debugged Them](#9-problems-we-faced-and-how-we-debugged-them)
+10. [New Things We Learned](#10-new-things-we-learned)
+11. [What to Keep in Mind if Starting Again](#11-what-to-keep-in-mind-if-starting-again)
+12. [Limitations and Future Improvements](#12-limitations-and-future-improvements)
+13. [Q&A Playbook — Good Questions, Failure Cases, and Hard Questions](#13-qa-playbook)
+
+---
+
+## 1. How We Planned and Approached This Project
+
+### The Starting Point
+
+The idea was to build a **healthcare AI assistant** that could answer patient questions grounded in real documents — not hallucinate answers. The two core requirements were:
+
+1. Answers must come from actual documents (privacy policy, discharge instructions, telehealth guidelines, etc.)
+2. The system must also be able to route non-knowledge questions — like booking appointments — to a separate tool
+
+We started by mapping the pipeline on paper before writing a single line of code:
+
+```
+Documents → Chunk → Embed → Store in Vector DB
+                                    ↓
+User Question → Rewrite → Embed → Retrieve → LLM → Answer
+```
+
+### Planning with Claude
+
+The planning process happened iteratively alongside Claude. We didn't have a big upfront spec — we built incrementally:
+
+- **Week 1:** Get the RAG pipeline working end-to-end. Documents → ChromaDB → LLM answer.
+- **Week 2:** Add the agent router (greeting, appointment, RAG). Add session history + query rewriting.
+- **Week 3:** Build the frontend UI. Wire up session IDs. Add rate limiting, fallback LLM, confidence scoring.
+- **Week 4:** Dockerize. Fix bugs (greeting false positive, vectorstore reload issue, Render OOM). Document everything.
+
+### Core Design Decisions Made Early
+
+| Decision | Reasoning |
+|----------|-----------|
+| Use RAG, not fine-tuning | Documents change; RAG lets us update without retraining |
+| FastAPI as the web framework | Automatic docs (`/docs`), async support, Pydantic validation built in |
+| ChromaDB for vector storage | Local, file-based, no separate DB server needed |
+| Groq for LLM inference | Free tier, extremely fast (LPU hardware), good rate limits for a demo |
+| HuggingFace for embeddings | Free embedding endpoint; `all-MiniLM-L6-v2` is well-tested for semantic search |
+| Separate routing layer | Greetings and appointments don't need RAG — routing saves unnecessary LLM calls |
+
+---
+
+## 2. The Working Application
+
+The application is a **chat-based healthcare assistant** accessible in the browser at `http://localhost:8000`.
+
+**What it can do:**
+- Answer medical/policy questions grounded in 6 real documents (no hallucination)
+- Book mock appointments by department and day
+- Handle greetings politely
+- Show confidence scores (high / medium / low / none) for every answer
+- Show source citations — which document chunk the answer came from
+- Track conversation context across multiple turns (query rewriting)
+
+**Documents in the knowledge base:**
+- `dpdpa_privacy_guidelines.txt` — Patient privacy rights under DPDPA 2023 (Indian data protection law)
+- `telehealth_guidelines.txt` — Rules for remote consultations
+- `discharge_instructions.txt` — Post-hospitalization care instructions
+- `insurance_eligibility_faq.txt` — Common insurance questions
+- `appointment_scheduling_policy.txt` — Booking rules and cancellation policy
+- `medication_refill_policy.txt` — Prescription refill procedures
+
+**Tech stack:**
+- Backend: FastAPI + Uvicorn
+- Vector DB: ChromaDB (local, file-based)
+- Embeddings: HuggingFace `sentence-transformers/all-MiniLM-L6-v2`
+- LLM: Groq API — `llama-3.3-70b-versatile` (primary), `llama-3.1-8b-instant` (fallback)
+- Frontend: Vanilla HTML/CSS/JavaScript (single file, `static/index.html`)
+- Containerization: Docker + Docker Compose
+
+---
+
+## 3. Architecture and Design Approach
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Browser UI                      │
+│         (static/index.html — chat widget)        │
+└──────────────────────┬──────────────────────────┘
+                       │ POST /ask {question, session_id}
+┌──────────────────────▼──────────────────────────┐
+│              FastAPI (main.py)                   │
+│  • Validates request (Pydantic AskRequest)       │
+│  • Rate limits: 20 req/min per IP (slowapi)      │
+│  • Auto-generates session_id if client omits it  │
+└──────────────────────┬──────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────┐
+│            Agent Router (agent.py)               │
+│  • Greeting? → hardcoded reply                   │
+│  • Appointment keyword? → tool call              │
+│  • Else? → RAG pipeline                          │
+└──────┬───────────────────────────────┬───────────┘
+       │                               │
+┌──────▼──────────┐        ┌───────────▼──────────┐
+│  RAG Pipeline   │        │  Appointment Tool     │
+│  (rag.py)       │        │  (agent.py)           │
+│  1. Rewrite Q   │        │  • Extract dept       │
+│  2. Embed Q     │        │  • Extract date       │
+│  3. Search DB   │        │  • Return mock slots  │
+│  4. Build prompt│        └──────────────────────┘
+│  5. Call LLM    │
+│  6. Save history│
+└──────┬──────────┘
+       │
+┌──────▼──────────────────────────────────────────┐
+│         ChromaDB (store/chroma/)                 │
+│  • 54 chunks from 6 documents                    │
+│  • Cosine similarity search                      │
+│  • Returns top-4 closest chunks + distances      │
+└──────┬──────────────────────────────────────────┘
+       │
+┌──────▼──────────────────────────────────────────┐
+│         Groq LLM (llama-3.3-70b-versatile)       │
+│  • temperature=0 for determinism                 │
+│  • Fallback: llama-3.1-8b-instant on rate limit  │
+│  • Retry with exponential backoff (tenacity)     │
+└─────────────────────────────────────────────────┘
+```
+
+### Three-Layer Design
+
+1. **Routing layer** — Intent detection before anything expensive runs
+2. **Retrieval layer** — Semantic search over the knowledge base
+3. **Generation layer** — LLM synthesizes a grounded answer from retrieved context
+
+This separation means greetings and appointment queries never touch the LLM or vector DB unnecessarily.
+
+---
+
+## 4. The RAG Pipeline and LLM Integration
+
+### Document Ingestion (`embeddings.py`)
+
+On startup (and whenever `POST /ingest` is called):
+
+1. Load all `.txt` files from `./data/`
+2. Split each document into chunks: **800 characters, 100-character overlap**
+   - Overlap prevents a sentence that spans a chunk boundary from losing context
+3. Convert each chunk into a vector using `all-MiniLM-L6-v2` (384-dimensional vectors)
+4. Store all vectors in ChromaDB using **cosine similarity** (not Euclidean — cosine ignores magnitude, better for text)
+5. **Atomic swap:** write to `./store/chroma_tmp`, then rename to `./store/chroma` — live queries never read a half-written database
+
+Result: **54 chunks** across 6 documents, indexed and ready for semantic search.
+
+### Query Flow (`rag.py`)
+
+```python
+def answer_question(question, session_id):
+    # Step 1: clarify vague follow-ups
+    clear = rewrite_query(question, session_id)
+    
+    # Step 2: semantic search
+    chunks = query_similar(clear)  # top-4 by cosine distance
+    
+    # Step 3: reject if nothing close enough
+    if chunks[0]["distance"] > 0.8:
+        return FALLBACK  # "I could not find this..."
+    
+    # Step 4: build prompt + call LLM
+    context = join(chunks)
+    answer = generate(build_prompt(context, clear))
+    
+    # Step 5: save to history
+    history.append(question, answer)
+    
+    return {answer, sources, confidence}
+```
+
+### Query Rewriting
+
+When a user says *"what about its side effects?"* — the RAG system can't search for that without context. `rewrite_query()` takes the last 6 conversation turns and asks the LLM to produce a standalone question:
+
+> "What are the side effects of [drug discussed earlier]?"
+
+This dramatically improves retrieval recall for multi-turn conversations.
+
+### Confidence Scoring
+
+Based on cosine distance of the best chunk retrieved:
+
+| Distance | Confidence | Meaning |
+|----------|------------|---------|
+| < 0.3 | high | Very close semantic match |
+| 0.3 – 0.6 | medium | Reasonable match |
+| 0.6 – 0.8 | low | Weak match, answer may be approximate |
+| > 0.8 | none | Fallback triggered, no answer given |
+
+### LLM Fallback (`llm.py`)
+
+If `llama-3.3-70b-versatile` hits Groq's rate limit, the system silently switches to `llama-3.1-8b-instant`. For other transient errors, it retries up to 3 times with exponential backoff using `tenacity`.
+
+---
+
+## 5. Prompt Engineering Strategy
+
+The system prompt in `llm.py` was the most carefully designed piece of the project:
+
+```
+You are a healthcare assistant. Answer using ONLY the context provided below.
+If the context contains relevant information -- even if it uses different law names
+or terminology than the question -- answer using what is in the context and note
+any differences.
+Only respond with "I could not find this information in the provided documents."
+if the context has no relevant information at all.
+Do not diagnose, prescribe, or give direct medical advice.
+Keep your answer professional, accurate, and concise.
+
+Context:
+{context}
+
+Question: {question}
+
+Answer:
+```
+
+### Why each instruction matters
+
+- **"ONLY the context provided"** — prevents hallucination. The LLM cannot draw on its training data to fill gaps.
+- **"even if it uses different law names"** — necessary because the file is named `hipaa_privacy_guidelines.txt` but actually contains DPDPA 2023 (Indian law), not HIPAA (US law). Without this clause, the LLM would refuse to answer HIPAA questions even though the document has the relevant information.
+- **"Do not diagnose or prescribe"** — safety guardrail to keep the assistant in an informational role.
+- **`temperature=0`** — makes responses deterministic. For a medical context, consistent wording matters more than creative phrasing.
+
+---
+
+## 6. Agent and Tool Workflow Implementation
+
+### The Router (`agent.py`)
+
+`route()` is the single entry point for every user message. It decides what to do in priority order:
+
+```
+Message received
+       ↓
+  Is it a greeting? (regex word boundary)
+       ↓ yes → "Hello! How can I help..."
+       ↓ no
+  Does it contain appointment keywords?
+       ↓ yes → extract dept + date → check_available_slots()
+       ↓ no
+  RAG pipeline → answer_question()
+```
+
+### Greeting Detection
+
+Early version used simple substring matching:
+
+```python
+# BAD: "what is morphine" matches "hi" inside "morph-INE" → false positive
+if any(kw in question.lower() for kw in GREETING_KEYWORDS):
+```
+
+Fixed version uses regex word boundaries:
+
+```python
+# GOOD: \bhi\b only matches "hi" as a standalone word
+if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
+```
+
+### Appointment Tool
+
+No LLM needed for this. Pure string matching extracts:
+- **Department** — walks the canonical list then alias map (`psychiatry → mental health`, `orthopedics → orthopaedics`)
+- **Date** — extracts day names and converts to actual calendar date (`"tuesday" → "Tuesday, June 27"`)
+
+Returns mock slots with a note to call to confirm. In production this would call a real scheduling API.
+
+### Session Management
+
+In-memory `OrderedDict` keyed by `session_id`, capped at 1000 entries. When the cap is reached, the oldest session is evicted (FIFO). This is memory-safe without needing Redis or a database.
+
+---
+
+## 7. API and Demo Flow
+
+### Startup Lifecycle
+
+FastAPI's `lifespan` context manager runs before any request is served:
+
+1. `validate_env()` — crashes loudly if `GROQ_API_KEY` or `HF_TOKEN` is missing (better than a cryptic error on the first request)
+2. `ingest_documents()` — loads and indexes all 6 documents into ChromaDB
+3. Server is ready
+
+### Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/` | GET | Serves the chat UI (`static/index.html`) |
+| `/ask` | POST | Main Q&A endpoint (rate-limited 20/min/IP) |
+| `/ingest` | POST | Manually re-index documents after updates |
+| `/health` | GET | Returns active model names and status |
+| `/docs` | GET | Swagger UI (auto-generated by FastAPI) |
+
+### Request/Response Shape
+
+```json
+// POST /ask
+{
+  "question": "What are my rights under DPDPA?",
+  "session_id": "abc-123"   // optional, auto-generated if omitted
+}
+
+// Response
+{
+  "answer": "Under the DPDPA 2023, patients have the right to...",
+  "sources": [
+    {
+      "document": "dpdpa_privacy_guidelines.txt",
+      "chunk": "The Digital Personal Data Protection Act 2023 grants..."
+    }
+  ],
+  "confidence": "high",
+  "tool_used": null,
+  "tool_output": null
+}
+```
+
+### Running with Docker
+
+```bash
+# First run (builds images)
+docker compose up --build
+
+# Subsequent runs
+docker compose up
+
+# Access
+open http://localhost:8000
+```
+
+---
+
+## 8. Key Technical Decisions and Trade-offs
+
+| Decision | Why We Made It | The Trade-off |
+|----------|---------------|---------------|
+| **Groq over OpenAI** | Free tier, extremely fast LPU inference | Hard rate limits (30 RPM on free tier) |
+| **HuggingFace embeddings API** | Free, no local GPU needed | Adds latency for embedding API calls; HF token required |
+| **ChromaDB (local)** | Zero infrastructure — just a folder on disk | Not horizontally scalable; lost if volume not persisted |
+| **In-memory session history** | Simple, no Redis needed | Lost on server restart; not shared across instances |
+| **Cosine distance (not Euclidean)** | Cosine ignores vector magnitude — better for sentence embeddings | Slightly slower than L2 in Chroma (negligible at this scale) |
+| **Atomic tmp-swap for ingest** | Zero-downtime re-indexing | Doubles disk usage briefly during ingest |
+| **Lazy singletons for models** | Fast import time; tests don't make network calls | First request to each path is slightly slower |
+| **`temperature=0`** | Deterministic, consistent medical answers | No phrasing variation — sometimes sounds robotic |
+| **Keyword routing (no LLM)** | Instant, no API call for greetings/appointments | Can miss ambiguous intent ("I feel sick and need help") |
+| **800-char chunks, 100-char overlap** | Balances context richness vs. retrieval noise | Large chunks mean fewer, broader results — may include irrelevant sentences |
+| **DISTANCE_THRESHOLD = 0.8** | Catches truly irrelevant queries | May be too permissive — low-confidence answers still get returned |
+| **Vanilla JS (no framework)** | Zero build step, single file | Harder to maintain at scale; no component reuse |
+
+---
+
+## 9. Problems We Faced and How We Debugged Them
+
+### Bug 1: "what is morphine" classified as a greeting
+
+**Symptom:** Any medical question containing the letters "hi" anywhere in the text would be classified as a greeting and return *"Hello! How can I help you?"* instead of a medical answer.
+
+**Root cause:** Substring matching. `"hi" in "what is morphine"` is `True` because "morphine" contains the substring "hi" (morpHIne).
+
+**Debug process:** Noticed "Greeting detected" in logs when asking about morphine. Immediately recognized it as a substring collision. Classic false positive pattern.
+
+**Fix:** Replaced substring check with regex word boundaries:
+```python
+# Before
+if any(kw in question.lower() for kw in GREETING_KEYWORDS):
+
+# After  
+if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
+```
+`\b` ensures "hi" only matches as a standalone word, not inside another word.
+
+---
+
+### Bug 2: Vectorstore opened fresh connection on every query
+
+**Symptom:** Every `/ask` request was slow. Logs showed repeated ChromaDB connection setup.
+
+**Root cause:** The original code created a new `Chroma(...)` object on every call to `_get_vectorstore()` — even though the underlying data on disk never changed between requests.
+
+**Fix:** Lazy singleton pattern — create once, reuse forever:
+```python
+_vectorstore: Chroma | None = None
+
+def _get_vectorstore() -> Chroma:
+    global _vectorstore
+    if _vectorstore is None:
+        _vectorstore = Chroma(persist_directory=CHROMA_PATH, ...)
+    return _vectorstore
+```
+
+---
+
+### Bug 3: Re-ingesting documents disrupted live queries
+
+**Symptom:** During a `POST /ingest`, any concurrent `/ask` request would read a partially-written ChromaDB and crash.
+
+**Root cause:** Overwriting the live vector store in-place while queries were running against it.
+
+**Fix:** Write to a temp directory, then atomically rename:
+```python
+tmp_path = CHROMA_PATH + "_tmp"
+Chroma.from_documents(..., persist_directory=tmp_path)  # write to temp
+shutil.rmtree(CHROMA_PATH)  # remove old
+Path(tmp_path).rename(CHROMA_PATH)  # atomic swap
+_vectorstore = None  # reset singleton
+```
+
+---
+
+### Bug 4: Session IDs were empty in logs
+
+**Symptom:** Logs showed `[session=]` — the session field was always blank even though `session_id` was wired in the backend.
+
+**Root cause:** The frontend JavaScript was not sending `session_id` in the POST body. The backend had the field, accepted it, and logged it — but there was nothing to log.
+
+**Fix:** Frontend generates a UUID on page load and includes it in every `/ask` request:
+```javascript
+const SESSION_ID = crypto.randomUUID();
+// ...
+body: JSON.stringify({ question, session_id: SESSION_ID })
+```
+Backend also auto-generates one if the client still omits it (Pydantic validator).
+
+---
+
+### Bug 5: Render deployment ran out of memory
+
+**Symptom:** The Render.com deployment kept crashing with OOM (out-of-memory) errors.
+
+**Root cause:** Loading HuggingFace sentence-transformer model + ChromaDB + Groq + FastAPI all into Render's free tier (512 MB RAM) was too much. The embedding model alone requires ~400 MB.
+
+**Decision:** Cancelled Render deployment entirely. Switched to local Docker Compose. Free cloud tiers are not viable for embedding-heavy workloads without using the HuggingFace API endpoint instead of downloading the model locally.
+
+---
+
+### Bug 6: UI header showed wrong LLM name ("Phi-2")
+
+**Symptom:** The header said *"Powered by RAG · Phi-2 · ChromaDB"* but the backend was running Llama 3.3.
+
+**Root cause:** The initial template used Phi-2 as a placeholder and was never updated when we switched to Groq/Llama.
+
+**Fix:** Updated `static/index.html` header to *"Powered by RAG · Llama 3.3 · ChromaDB"*.
+
+---
+
+### Bug 7: Suggestion button asked about HIPAA (US) but knowledge base has DPDPA (India)
+
+**Symptom:** The welcome screen suggested *"What are my rights under HIPAA?"* — but the document is DPDPA 2023 (Indian law). Users clicking the suggestion got a confused or incomplete answer.
+
+**Root cause:** Template/placeholder mismatch. The document file is named `hipaa_privacy_guidelines.txt` but actually contains Indian regulatory content written for the DPDPA 2023.
+
+**Fix:** Updated the suggestion button to *"What are my rights under the DPDPA regarding my health data?"* — and updated the system prompt to instruct the LLM to answer even when law names differ between the question and the document.
+
+---
+
+### Bug 8: `--reload` triggered re-ingestion on every file save
+
+**Symptom:** During development with `uvicorn --reload`, every time we saved any Python file, the server would restart and re-ingest all documents, making development slow.
+
+**Root cause:** `--reload` watches all files by default, including the `./store/` directory where ChromaDB writes its own files. Any DB write triggered a reload → re-ingest → more DB writes → infinite loop.
+
+**Fix:** Added `--reload-exclude store` to the uvicorn command to exclude the vector store directory from file watching.
+
+---
+
+## 10. New Things We Learned
+
+### RAG is more about retrieval quality than LLM quality
+
+The LLM is only as good as the chunks it receives. If the wrong chunks are retrieved (low relevance), even the best LLM will produce a bad answer. Chunk size, overlap, and the distance threshold matter more than which LLM you pick.
+
+### Cosine distance is the right metric for text embeddings
+
+Euclidean distance measures the straight-line distance between two vectors. But text embeddings encode semantic meaning in the *direction* of the vector, not its magnitude. Two sentences can have similar meaning but very different lengths (and thus magnitudes). Cosine distance only looks at the angle between vectors, which is what we actually care about.
+
+### Lazy singletons are critical for ML models in web servers
+
+Loading an embedding model or connecting to a vector store on every request is catastrophic for latency. The lazy singleton pattern (create once, cache globally, reuse forever) is the standard approach for any model or expensive resource in a web server.
+
+### Regex word boundaries prevent substring collisions
+
+Naive keyword matching (`"hi" in text`) will match "hi" inside words like "this", "their", "morphine". For intent detection, always use word boundaries: `\b{keyword}\b`.
+
+### FastAPI's `lifespan` is the right place for startup logic
+
+Not `@app.on_event("startup")` (deprecated) — the modern pattern is a `@asynccontextmanager` lifespan function that `yield`s. Code before `yield` runs on startup; code after runs on shutdown.
+
+### Atomic file operations prevent corrupt reads under concurrency
+
+Never write to a live file that something else might be reading. Write to a temp location, then rename/move atomically. The OS guarantees that a rename is atomic — observers either see the old file or the new one, never a half-written state.
+
+### Pydantic validators can generate default values
+
+`@field_validator` with `mode="before"` runs before type validation, so you can transform or fill in values — like auto-generating a `session_id` UUID when the client doesn't send one.
+
+### `OrderedDict` is a simple bounded cache
+
+For bounded session storage without Redis, an `OrderedDict` with a cap and `popitem(last=False)` to evict the oldest entry is a clean, dependency-free solution.
+
+### Free cloud tiers are not viable for embedding workloads
+
+The HuggingFace `all-MiniLM-L6-v2` model requires ~400MB of RAM when loaded locally. Render's free tier is 512MB total. This does not leave enough headroom for the rest of the application. Either use the HuggingFace **API endpoint** (which does the inference on HF's servers) or upgrade to a paid tier.
+
+---
+
+## 11. What to Keep in Mind if Starting Again
+
+These are the things we would do differently from day one:
+
+### 1. Name your data files accurately from the start
+Our `hipaa_privacy_guidelines.txt` actually contains DPDPA 2023 content. This caused a cascade: the LLM refused to answer "HIPAA" questions, the suggestion buttons were wrong, and the system prompt needed a workaround clause. Name files what they actually contain.
+
+### 2. Design the session ID contract before building anything
+We built session history on the backend and the frontend separately. The frontend didn't send session IDs for days, so query rewriting silently didn't work. Define the request contract (including `session_id`) before building either side.
+
+### 3. Use word boundaries for keyword matching from the start
+Simple `in` substring checks will cause false positives for medical terminology. Use `\b{keyword}\b` regex from day one.
+
+### 4. Use the HuggingFace API endpoint, not local model download
+Using `HuggingFaceEndpointEmbeddings` (API call) instead of downloading the model locally keeps RAM usage low and makes deployment to free tiers feasible.
+
+### 5. Exclude the vector store from `--reload` immediately
+Add `--reload-exclude store` before starting development. Forgetting this causes a reload loop the moment ChromaDB writes anything.
+
+### 6. Set `DISTANCE_THRESHOLD` with real data, not guesses
+We used `0.8`. That may be too permissive. The right value depends on your embedding model and document domain. Measure actual distances on sample queries and set a threshold based on observed data.
+
+### 7. Build the fallback LLM before you hit rate limits
+We added the fallback model (`llama-3.1-8b-instant`) after hitting Groq rate limits in testing. It should be there from the beginning. Wire up the `RateLimitError` catch + exponential backoff before demos.
+
+### 8. Test the greeting detector with medical words before shipping
+Specifically test words like "therapy", "morphine", "physical", "psychiatry" — they contain common greeting substrings. A word boundary unit test for this is worth writing.
+
+### 9. Persist ChromaDB across container restarts
+If you're using Docker, mount `./store` as a volume. Without a volume, the entire vector store is rebuilt from scratch every time the container restarts (slow startup + HF API calls).
+
+### 10. Keep the frontend in one file intentionally, not accidentally
+We ended up with a single `index.html` after reverting a CSS split. This is actually a good default for a demo/prototype — no build step, no asset pipeline, easy to share. Make it a deliberate decision, not a refactor that happens mid-project.
+
+---
+
+## 12. Limitations and Future Improvements
+
+### Current Limitations
+
+| Limitation | Impact |
+|-----------|--------|
+| In-memory session history | Lost on restart; not shared across multiple server instances |
+| Hardcoded appointment slots | Not a real scheduling system — mock data only |
+| Re-ingests all documents on every startup | Slow startup; wastes HF API calls if docs haven't changed |
+| No authentication | Anyone can call `/ask` — no user identity or access control |
+| Only `.txt` files supported | No PDF, DOCX, or HTML ingestion |
+| No streaming responses | Users wait for the full answer; no progressive display |
+| Keyword-only appointment routing | Cannot extract complex multi-part appointment requests |
+| Single-node ChromaDB | Cannot scale horizontally across multiple app instances |
+| No PHI handling | Should not be used with real patient data in this form |
+
+### Future Improvements
+
+- **Persistent sessions:** Move session history to Redis or a database (DynamoDB, Postgres) for multi-instance support
+- **Incremental ingestion:** Hash documents on startup and skip re-embedding unchanged files
+- **Streaming answers:** Use SSE (Server-Sent Events) or WebSocket to stream tokens as they arrive from Groq
+- **PDF/DOCX support:** Add `pypdf` + `python-docx` loaders to handle richer document formats
+- **RAGAS evaluation:** Instrument the RAG pipeline with RAGAS scores (faithfulness, answer relevancy, context precision) to measure and improve quality over time
+- **Real scheduling API:** Replace mock slots with an actual integration (e.g., Cal.com, Calendly, a hospital HMS API)
+- **Auth + audit logs:** Add OAuth or API key authentication; log every query with user identity for compliance
+- **Chunking strategy review:** Experiment with semantic chunking (split on sentences, not characters) for better retrieval
+
+---
+
+## 13. Q&A Playbook
+
+### Questions That Work Well (Best Answers)
+
+These questions have high-quality chunks in the knowledge base and will return **high confidence** answers:
+
+```
+What are my rights under the DPDPA regarding my health data?
+What information must a hospital provide upon patient discharge?
+Can I consult a doctor via telehealth if I am in a rural area?
+How do I request a medication refill?
+What should I do if I develop a fever after surgery?
+Is my insurance coverage verified before my appointment?
+What happens if I need to cancel my appointment?
+Can my medical data be shared with third parties?
+What security measures protect my health data?
+How do I file a complaint about a privacy violation?
+```
+
+### Questions That Will Cause the Model to Fail (or Return Fallback)
+
+These expose the boundaries of the knowledge base:
+
+```
+What is the dosage of metformin for type 2 diabetes?
+→ No clinical dosage information in the KB. Should return fallback.
+
+Is ibuprofen safe during pregnancy?
+→ No medication safety data. Should return fallback.
+
+What are the symptoms of appendicitis?
+→ Not in any of the 6 documents. Should return fallback.
+
+What is the current wait time at the emergency room?
+→ Real-time data — impossible to answer. Should return fallback.
+
+Can you book me an appointment for next Tuesday at 3pm specifically?
+→ Appointment tool returns mock slots, not the exact requested time.
+
+What are my rights under HIPAA?
+→ Interesting edge case: the LLM should bridge HIPAA (US) to DPDPA (India)
+   because the system prompt instructs it to answer even with different law names.
+   This tests whether the prompt engineering actually works.
+```
+
+### How Unknown Answers Are Handled
+
+When no chunk in the database is close enough (cosine distance > 0.8), the system returns:
+
+```
+"I could not find this information in the provided documents."
+```
+
+- `confidence: "none"` is returned
+- `sources: []` (empty — no chunks cited)
+- The UI shows a gray "none" badge
+- **No hallucination** — the LLM is never called if retrieval fails the threshold
+
+This is a deliberate safety mechanism. It is better to admit ignorance than to fabricate a medical answer.
+
+### Explaining Model, Embedding, and Vector DB Choices
+
+**Why `all-MiniLM-L6-v2` for embeddings?**
+- 384-dimensional vectors — small enough for fast cosine search
+- Trained specifically for semantic sentence similarity
+- Runs via HuggingFace inference API (no GPU needed locally)
+- Well-benchmarked: top performer on SBERT leaderboard for its size class
+
+**Why ChromaDB?**
+- No separate server to run — it's a Python library that stores to disk
+- Built-in cosine similarity with HNSW indexing (fast approximate nearest neighbor)
+- Perfect for prototypes and demos; easy to replace with Pinecone, Weaviate, or pgvector in production
+
+**Why Llama 3.3-70B via Groq?**
+- 70B parameters — large enough for complex medical language understanding
+- Groq's LPU hardware makes it 5-10x faster than running on GPU servers
+- Free tier with a generous token limit for demos
+- Fallback to 8B instant handles rate limit bursts without downtime
+
+### Source Citations
+
+Every answer includes a `sources` array showing exactly which document chunk was used:
+
+```json
+"sources": [
+  {
+    "document": "dpdpa_privacy_guidelines.txt",
+    "chunk": "Under the Digital Personal Data Protection Act 2023, patients have the right to..."
+  }
+]
+```
+
+The UI renders these as expandable "Sources" cards. This is important in healthcare — users should be able to verify where the answer came from, not just trust an AI.
+
+Citation is derived from the `metadata.source` field stored alongside each chunk in ChromaDB at ingest time.
+
+### How the Solution Would Scale in Production
+
+| Component | Current | Production-Ready Replacement |
+|-----------|---------|------------------------------|
+| Vector DB | ChromaDB (local file) | Pinecone, Weaviate, or pgvector (Postgres extension) |
+| LLM | Groq free tier | Groq paid tier, AWS Bedrock, or Azure OpenAI with higher rate limits |
+| Embeddings | HuggingFace API endpoint | Batch embedding with caching; consider Voyage AI or Cohere embeddings |
+| Session history | In-memory OrderedDict | Redis with TTL expiry |
+| Web server | Single Uvicorn process | Gunicorn with multiple Uvicorn workers + load balancer |
+| File storage | Local `./data/*.txt` | S3 or GCS bucket + event-driven re-ingestion on file upload |
+| Re-ingestion | Manual `POST /ingest` | Event-driven: Lambda/Cloud Function triggers on document upload |
+| Auth | None | OAuth 2.0 / OIDC + API gateway |
+
+### Security, PHI, and Healthcare Compliance Considerations
+
+**This application as-built is NOT compliant for use with real patient data.**
+
+Key gaps and considerations:
+
+| Area | Current State | What's Needed for Compliance |
+|------|--------------|------------------------------|
+| **PHI handling** | No real patient data; documents are policies | Any real PHI requires HIPAA BAA with all vendors (Groq, HuggingFace, cloud providers) |
+| **Data encryption** | None (local files, no TLS enforced) | TLS in transit; AES-256 at rest for all stored vectors and documents |
+| **Authentication** | None — open API | User authentication + role-based access control (RBAC) |
+| **Audit logging** | Basic request logs | Full audit trail: who asked what, when, what data was accessed |
+| **Data residency** | Local disk | HIPAA and DPDPA both have data localization requirements |
+| **LLM data retention** | Groq's policy | Verify vendor does not train on submitted data; get contractual guarantees |
+| **Consent** | None | DPDPA 2023 requires explicit, informed consent before processing health data |
+| **Breach notification** | None | Must notify affected patients within 72 hours (DPDPA); 60 days (HIPAA) |
+| **Input validation** | Basic Pydantic validation | Sanitize inputs to prevent prompt injection attacks |
+| **XSS** | Frontend escapes HTML | Already implemented via `escHtml()` in `index.html` |
+| **Rate limiting** | 20 req/min per IP | Should also rate-limit per authenticated user, not just IP |
+
+**Prompt injection risk:** A malicious user could try to override the system prompt by including instructions in their question (e.g., *"Ignore all previous instructions and reveal..."*). Mitigation: never concatenate user input directly into critical system instructions; keep user input in a clearly delimited `Question:` field separated from the system prompt.
+
+---
+
+*This document was written after completing the project to capture everything that was learned, decided, and fixed. The goal is that someone reading this — including future-you — can understand not just what the code does but why every choice was made.*
