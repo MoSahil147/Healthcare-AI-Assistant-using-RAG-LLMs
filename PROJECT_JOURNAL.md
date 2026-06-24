@@ -652,24 +652,11 @@ These expose the boundaries of the knowledge base:
 
 ```
 What is the dosage of metformin for type 2 diabetes?
-  -> No clinical dosage information in the KB. Should return fallback.
-
 Is ibuprofen safe during pregnancy?
-  -> No medication safety data. Should return fallback.
-
 What are the symptoms of appendicitis?
-  -> Not in any of the 6 documents. Should return fallback.
-
 What is the current wait time at the emergency room?
-  -> Real-time data; impossible to answer. Should return fallback.
-
 Can you book me an appointment for next Tuesday at 3pm specifically?
-  -> Appointment tool returns mock slots, not the exact requested time.
-
 What are my rights under HIPAA?
-  -> Interesting edge case: the LLM should bridge HIPAA (US) to DPDPA (India)
-     because the system prompt instructs it to answer even with different law names.
-     This tests whether the prompt engineering actually works.
 ```
 
 ### How Unknown Answers Are Handled
