@@ -1,0 +1,36 @@
+# version control
+.git
+.gitignore
+
+# python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+
+# virtual environment
+.venv
+venv
+
+# vector store (rebuilt on startup)
+store/
+
+# dev/test files
+tests/
+*.md
+CHANGES.txt
+repo_link.txt
+start.txt
+
+# demo assets (large files, not needed in container)
+Demo.gif
+Demo.mp4
+
+# env file (injected at runtime, never baked into image)
+.env
+
+# IDE
+.vscode
+.idea
