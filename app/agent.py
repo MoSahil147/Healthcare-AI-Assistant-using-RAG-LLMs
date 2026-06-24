@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import date, timedelta
 
 from app.rag import answer_question
@@ -58,7 +59,7 @@ def _get_department(question: str) -> str:
     for dept in _CANONICAL_SLOTS:
         if dept != "default" and dept in q:
             return dept
-    for alias, canon in _ALIASES.items():
+    for alias, canon in _ALIASES.items(): # alias is worng spelling, canon is right, see _ALIASES
         if alias in q:
             return canon
     return "default"
@@ -82,7 +83,8 @@ def _get_date(question: str) -> str:
 def route(question: str, session_id: str = "") -> dict: # turns to dict, as key value pairs
     logger.info("Routing: %s", question)
 
-    if any(kw in question.lower() for kw in GREETING_KEYWORDS):
+    # greeting
+    if any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS):
         logger.info("Greeting detected")
         return {
             "answer":     "Hello! How can I help you with your healthcare questions today?",
@@ -112,5 +114,5 @@ def route(question: str, session_id: str = "") -> dict: # turns to dict, as key 
             "tool_output": slot_info,
         }
 
-    # not an appointment question, hand off to the RAG pipeline
+    # not an appointment question or greeting, hand off to the RAG pipeline
     return answer_question(question, session_id)
