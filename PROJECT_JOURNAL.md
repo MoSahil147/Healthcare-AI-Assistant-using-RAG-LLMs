@@ -54,12 +54,12 @@ User Question -> Rewrite -> Embed -> Retrieve -> LLM -> Answer
 
 ### Planning with Claude
 
-The planning process happened iteratively alongside Claude. We had no big upfront spec; we built incrementally:
+The planning process happened iteratively. We had no big upfront spec; we built one layer at a time:
 
-- **Week 1:** Get the RAG pipeline working end-to-end. Documents -> ChromaDB -> LLM answer.
-- **Week 2:** Add the agent router (greeting, appointment, RAG). Add session history and query rewriting.
-- **Week 3:** Build the frontend UI. Wire up session IDs. Add rate limiting, fallback LLM, confidence scoring.
-- **Week 4:** Dockerise. Fix bugs (greeting false positive, vectorstore reload issue, Render OOM). Document everything.
+- First got the RAG pipeline working end-to-end: Documents -> ChromaDB -> LLM answer.
+- Then added the agent router: greeting detection, appointment tool, and RAG fallback.
+- Then added session history, query rewriting, rate limiting, fallback LLM, and confidence scoring.
+- Finally Dockerised the app, fixed bugs, and documented everything.
 
 ### Core Design Decisions Made Early
 
