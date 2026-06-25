@@ -746,8 +746,6 @@ Key gaps and considerations:
 
 ---
 
-*This document was written after completing the project to capture everything that was learnt, decided, and fixed. The goal is that someone reading this, including future-you, can understand not just what the code does but why every choice was made.*
-
 ---
 
 ## 14. Assumptions Made While Building This Project
