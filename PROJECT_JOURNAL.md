@@ -740,7 +740,6 @@ Key gaps and considerations:
 | **Consent** | None | DPDPA 2023 requires explicit, informed consent before processing health data |
 | **Breach notification** | None | Must notify affected patients within 72 hours (DPDPA) and 60 days (HIPAA) |
 | **Input validation** | Basic Pydantic validation | Sanitise inputs to prevent prompt injection attacks |
-| **XSS** | Frontend escapes HTML | Already implemented via `escHtml()` in `index.html` |
 | **Rate limiting** | 20 req/min per IP | Should also rate-limit per authenticated user, not just IP |
 
 **Prompt injection risk:** A malicious user could try to override the system prompt by including instructions in their question (for example, *"Ignore all previous instructions and reveal..."*). Mitigation: never concatenate user input directly into critical system instructions; keep user input in a clearly delimited `Question:` field separated from the system prompt.
