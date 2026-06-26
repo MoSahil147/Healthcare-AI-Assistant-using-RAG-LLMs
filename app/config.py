@@ -1,6 +1,6 @@
-import os
-from dotenv import load_dotenv
-from pydantic import SecretStr
+import os # reads environment variables at runtime
+from dotenv import load_dotenv # loads key=value pairs from .env file into os.environ
+from pydantic import SecretStr # wraps API keys so they never appear in logs or tracebacks
 
 load_dotenv()
 
@@ -22,8 +22,9 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 
 def validate_env() -> None:
+    # name value pairs
     # called at startup so it fails loud and early, rather than with a cryptic error on the first request
-    missing = [name for name, val in [("HF_TOKEN", HF_TOKEN), ("GROQ_API_KEY", GROQ_API_KEY)] if not val]
+    missing = [name for name, val in [("HF_TOKEN", HF_TOKEN), ("GROQ_API_KEY", GROQ_API_KEY)] if not val] # True is val is absent
     if missing:
         raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
 

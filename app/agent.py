@@ -86,6 +86,11 @@ def route(question: str, session_id: str = "") -> dict: # turns to dict, as key 
     # only treat as a pure greeting if the entire message is just a greeting word
     # e.g. "hi", "hello!", "hey there" → greeting
     # e.g. "hi, I need to book an appointment" → NOT a greeting, has real intent
+    
+#   - "|".join(GREETING_KEYWORDS) → "hi|hello|hey|good morning|..."
+#   - rf'\b(...)\b' → regex pattern that matches any greeting word
+#   - re.sub(...) → removes all greeting words from the question
+#   - .strip(" !?.,") → removes leftover punctuation and spaces
     q_stripped = re.sub(rf'\b({"|".join(GREETING_KEYWORDS)})\b', '', question.lower()).strip(" !?,.")
     is_pure_greeting = any(re.search(rf'\b{kw}\b', question.lower()) for kw in GREETING_KEYWORDS) and len(q_stripped) < 10
 

@@ -1,13 +1,16 @@
+# 2 runs the container
+#instruction how to serve it
+# docker compose up --build
 version: "3.9"
 
 services:
   healthcare-ai:
-    build: .
+    build: .  # build from the Dockerfile in current folder, building an image, using the Doker file above
     ports:
-      - "8000:8000"
+      - "8000:8000" # exposing the container port 8000 to machine's port 8000
     volumes:
-      - ./data:/app/data
-      - ./store:/app/store
+      - ./data:/app/data # data from our sys is being shifter to container's data
+      - ./store:/app/store # same for the vector
     env_file:
-      - .env
-    restart: unless-stopped
+      - .env # loads the groq and hf
+    restart: unless-stopped # will auto restart if crashes

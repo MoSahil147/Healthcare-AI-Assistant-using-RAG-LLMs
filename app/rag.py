@@ -5,20 +5,23 @@ from app.config import DISTANCE_THRESHOLD, get_primary_llm
 from app.embeddings import query_similar
 from app.llm import build_prompt, generate
 
+# evry file as a logger as every file needs to identify itself
 logger = logging.getLogger(__name__)
 
 FALLBACK = "I could not find this information in the provided documents."
 
 # one history list per session, keyed by session_id
 # using OrderedDict lets us evict the oldest session when the cap is reached
-_MAX_SESSIONS = 1000
-_session_histories: OrderedDict[str, list] = OrderedDict()
+_MAX_SESSIONS = 1000 # max num of active sessions to keep in mem
+# orderdict over regular dict, it remembers the order sessions, as it knows whcih one is oldest and drops it
+_session_histories: OrderedDict[str, list] = OrderedDict() 
+# str -> session_id, list -> conversation history
 
 
 def _get_history(session_id: str) -> list:
     if session_id not in _session_histories:
         if len(_session_histories) >= _MAX_SESSIONS:
-            _session_histories.popitem(last=False)  # drop the oldest session
+            _session_histories.popitem(last=False)  # drop the (first) oldest session, last means the oldest
         _session_histories[session_id] = []
     return _session_histories[session_id]
 
@@ -32,15 +35,17 @@ def rewrite_query(question: str, session_id: str) -> str:
     # build a short summary of the last few turns so vague follow-ups can be clarified
     history_text = "\n".join(
         f"{t['role'].upper()}: {t['content']}"
-        for t in history[-6:]  # last 3 turns is enough context
+        for t in history[-6:]  # last 6
     )
     prompt = (
         "Given this conversation history and a vague follow-up question, "
         "rewrite it as a clear standalone question. Output only the rewritten question.\n\n"
-        f"History:\n{history_text}\n\n"
-        f"Vague: {question}\nRewritten:"
+        f"History:\n{history_text}\n\n" # all the history about something
+        f"Vague: {question}\nRewritten:" # whst its symptomps
     )
-    rewritten = get_primary_llm().invoke(prompt).content.strip()
+    # now rewritten as symtomps of Diabetes
+    # .content extracts the text from the LLM and .strip removes leading whitespaces
+    rewritten = get_primary_llm().invoke(prompt).content.strip() 
     logger.info("Rewrite: '%s' -> '%s'", question, rewritten)
     return rewritten
 

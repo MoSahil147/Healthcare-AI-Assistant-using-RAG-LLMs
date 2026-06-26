@@ -1,3 +1,4 @@
+# uv run pytest tests/test_api.py -v
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch
