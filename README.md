@@ -12,7 +12,7 @@ A RAG-based AI assistant that answers healthcare questions from a curated docume
 | Backend API (Render) | https://healthcare-ai-assistant-using-rag-llms.onrender.com |
 | API Docs (Swagger) | https://healthcare-ai-assistant-using-rag-llms.onrender.com/docs |
 
-> The project is currently being run on local development. The links above are still live, but the backend deployment on Render is on hold for now due to out-of-memory issues on the free tier — all future updates will be pushed to these same links, so once redeployed you'll be able to enjoy the web version straight from here. Until then, run it locally and enjoy!
+> The project is currently being run on local development. The links above are still live, but the backend deployment on Render is on hold for now due to out-of-memory issues on the free tier, all future updates will be pushed to these same links, so once redeployed you will be able to enjoy the web version straight from here. Until then, run it locally and enjoy!
 
 ![Demo](Demo.gif)
 
@@ -254,7 +254,7 @@ Does the question contain appointment keywords?
               → else: build prompt → Groq LLM → answer + citations
 ```
 
-The router uses keyword matching — no LLM call needed for routing decisions, keeping latency low.
+The router uses keyword matching, no LLM call needed for routing decisions, keeping latency low.
 Query rewriting uses the LLM to turn "what about that?" into a clear standalone question before searching.
 
 ## Running Tests
@@ -267,7 +267,7 @@ uv run pytest tests/ -v
 
 **Current limitations:**
 - Keyword-based appointment routing can misroute ambiguous edge-case questions.
-- No user authentication — all endpoints are public.
+- No user authentication, all endpoints are public.
 - Mock appointment slots are hardcoded; no real scheduling system connected.
 - Per-session conversation history is in-memory and resets on server restart.
 
