@@ -1,6 +1,6 @@
 # Healthcare AI Assistant
 
-A RAG-based AI assistant that answers healthcare questions from a curated document knowledge base, with an agentic appointment-routing workflow and query rewriting  built for the Mindbowser AI Engineer hackathon.
+A RAG-based AI assistant that answers healthcare questions from a curated document knowledge base, with an agentic appointment-routing workflow and query rewriting.
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/MoSahil147/Healthcare-AI-Assistant-using-RAG-LLMs)
 
@@ -12,7 +12,7 @@ A RAG-based AI assistant that answers healthcare questions from a curated docume
 | Backend API (Render) | https://healthcare-ai-assistant-using-rag-llms.onrender.com |
 | API Docs (Swagger) | https://healthcare-ai-assistant-using-rag-llms.onrender.com/docs |
 
-> The Render free tier spins down after inactivity — first request may take ~30 seconds to wake up.
+> The project is currently being run on local development. The links above are still live, but the backend deployment on Render is on hold for now due to out-of-memory issues on the free tier — all future updates will be pushed to these same links, so once redeployed you'll be able to enjoy the web version straight from here. Until then, run it locally and enjoy!
 
 ![Demo](Demo.gif)
 

@@ -805,7 +805,7 @@ When rewriting a vague follow-up question like *"what about its side effects?"*,
 ---
 
 ### 11. One server process is enough
-We assumed only one or two people will use this at a time (demo/hackathon scenario). We run a single Uvicorn process. In production with many users, you would run multiple workers behind a load balancer.
+We assumed only one or two people will use this at a time (demo scenario). We run a single Uvicorn process. In production with many users, you would run multiple workers behind a load balancer.
 
 ---
 
